@@ -219,7 +219,7 @@ def reset_variable(varmode):
     del NAV_ARRAY_TYPE[:]
     del NAV_ARRAY_SERVICE[:]
     NAV_DICT['MARKER'], NAV_DICT['LISTSTART'] = 0, 0
-    IMAGE_DICT['IMG_CHECK'], VOLUMIO_DICT['ALBUMART'], VOLUMIO_DICT['STATE_LAST'] = '', '', None  # reset albumart so display gets refreshed
+    IMAGE_DICT['IMG_CHECK'], VOLUMIO_DICT['STATE_LAST'] = '', None  # reset albumart so display gets refreshed
     print("reset_variable--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
@@ -327,6 +327,7 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
     f_page(marked, NAV_DICT['LISTMAX'], result)
     sendtodisplay(IMAGE_DICT['IMG3'])
     print("displaystuff--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    return IMAGE_DICT['IMG3']
 
 
 # position in code is important, so display_stuff works v.0.0.4
@@ -342,13 +343,17 @@ def seeking(direction):
     if direction == '+':
         if int(float((VOLUMIO_DICT['SEEK'] + step)/1000)) < VOLUMIO_DICT['DURATION']:
             VOLUMIO_DICT['SEEK'] += step
-            SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
             display_stuff(IMAGE_DICT['BG_DEFAULT'], [OBJ_TRANS['DISPLAY']['SEEK'], ''.join([strftime("%M:%S", gmtime(int(float(VOLUMIO_DICT['SEEK']/1000)))), ' / ', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION']))])], 0, 0, 'seek')
     else:
         if int(float((VOLUMIO_DICT['SEEK'] - step)/1000)) > 0:
             VOLUMIO_DICT['SEEK'] -= step
-            SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
             display_stuff(IMAGE_DICT['BG_DEFAULT'], [OBJ_TRANS['DISPLAY']['SEEK'], ''.join([strftime("%M:%S", gmtime(int(float(VOLUMIO_DICT['SEEK']/1000)))), ' / ', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION']))])], 0, 0, 'seek')
+
+    if int(float(VOLUMIO_DICT['SEEK']/1000)) > VOLUMIO_DICT['DURATION']:
+        VOLUMIO_DICT['SEEK'] = VOLUMIO_DICT['DURATION'] * 1000
+    if int(float(VOLUMIO_DICT['SEEK']/1000)) < 0:
+        VOLUMIO_DICT['SEEK'] = 0
+    SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
     print("seeking--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
@@ -386,7 +391,13 @@ def on_push_queue(*args):
 def on_push_state(*args):
     """processes websocket informations of push state"""
     start_time = time()  # debug, time of code execution
+
+    #from pyinstrument import Profiler
+    #profiler = Profiler()
+    #profiler.start()
+
     global IMAGE_DICT, OVERLAY_DICT, VOLUMIO_DICT
+
     # WS_CONNECTED = True
     # test to get rid of unneeded, empty screen refreshs
     if not args[0]['title'] and not args[0]['artist'] and not args[0]['album'] and LEN_QUEUE > 0:
@@ -536,6 +547,8 @@ def on_push_state(*args):
             IMAGE_DICT['IMG_CHECK'] = IMAGE_DICT['IMG']
             sendtodisplay(IMAGE_DICT['IMG'])
     print("on_push_state--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    #profiler.stop()
+    #profiler.print(open("profile.txt", "w"))
 
 
 # IMG = Image.new('RGBA', (240, 240), color=(0, 0, 0, 25))  # v.0.0.7 not needed, as we always open an image
@@ -654,7 +667,7 @@ def button_b(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
             sleep(0.5)
     elif mode in ['navigation', 'menu', 'seek', 'prevnext']:
         reset_variable('player')
-        IMAGE_DICT['LASTREFRESH'] = time()-10  # to get display refresh independ from refresh thread
+        IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
         SOCKETIO.emit('getState')
 
 
@@ -737,7 +750,7 @@ def display_helper():  # v0.0.7
     """helper function as thread"""
     while True:
         display_refresh()
-        sleep(1)
+        sleep(0.5 if SIMULATOR else 5)
 
 
 THREAD1 = Thread(target=display_helper)  # v0.0.7
