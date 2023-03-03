@@ -8,15 +8,15 @@
     "SAVE":"Enregistrer"
     },
   "DISPLAY": {
-    "MUSICSELECTION": "Sélection de musique",
-    "SHUTDOWN": "Éteindre ?",
-    "REBOOT": "Redémarrer le Pi ?",
+    "MUSICSELECTION": "Selection de musique",
+    "SHUTDOWN": "Eteindre ?",
+    "REBOOT": "Redemarrer le Pi ?",
     "LOSTCONNECTION": "Connexion perdue",
     "EMPTY": "vide",
     "WAIT": "Veuillez patienter",
     "NOTSUPPORTED": "non pris en charge par le plugin",
     "SEEK": "Recherche",
-    "PREVNEXT": "Chanson précédente/suivante",
+    "PREVNEXT": "Chanson prec/sui",
     "SETSLEEPTIMER": "Configurer le timer de mise en veille"
   }
 }

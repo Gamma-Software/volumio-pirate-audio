@@ -9,22 +9,26 @@ buttons = {"5": 0, "6": 0, "16": 0, "20": 0}
 def setmode(mode):
     print("setmode Not implemented on simulator")
 
-def cleanup(self):
+def cleanup(button):
     print("cleanup Not implemented on simulator")
 
-def setup(self, pin, direction):
+def setup(channel, pin, direction):
     print("setup Not implemented on simulator")
 
-def press_key(self, pin):
-    self.buttons[str(pin)] = 1
+def press_key(pin):
+    buttons[str(pin)] = 1
+    print(f'Button {pin} pressed')
     callback(pin) # Call the callback function only if the button is pressed
 
-def release_key(self, pin):
-    self.buttons[str(pin)] = 0
+def release_key(pin):
+    buttons[str(pin)] = 0
+    print(f'Button {pin} released')
 
 def add_event_detect(pin_channels, direction, _callback, bouncetime):
     global callback
     callback = _callback
 
-def input(self, pin):
-    return self.buttons[str(pin)]
+def input(pin):
+    ret = buttons[str(pin)]
+    release_key(pin)
+    return not bool(ret)
