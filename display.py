@@ -392,10 +392,6 @@ def on_push_state(*args):
     """processes websocket informations of push state"""
     start_time = time()  # debug, time of code execution
 
-    #from pyinstrument import Profiler
-    #profiler = Profiler()
-    #profiler.start()
-
     global IMAGE_DICT, OVERLAY_DICT, VOLUMIO_DICT
 
     # WS_CONNECTED = True
@@ -547,8 +543,6 @@ def on_push_state(*args):
             IMAGE_DICT['IMG_CHECK'] = IMAGE_DICT['IMG']
             sendtodisplay(IMAGE_DICT['IMG'])
     print("on_push_state--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
-    #profiler.stop()
-    #profiler.print(open("profile.txt", "w"))
 
 
 # IMG = Image.new('RGBA', (240, 240), color=(0, 0, 0, 25))  # v.0.0.7 not needed, as we always open an image
