@@ -25,7 +25,7 @@ else:
     import RPi.GPIO as GPIO
 
 if SIMULATOR:
-    from simulator.Simulator import handle_events
+    import simulator.Simulator as Simulator
 
 if SIMULATOR:
     remote_server = 'volumio.local'
@@ -714,9 +714,11 @@ for xb in BUTTONS:
 
 
 def main():
-    """waits for websocket messages"""
-    SOCKETIO.wait()
-    sleep(0.5)
+    try:
+        SOCKETIO.wait()
+        sleep(0.1)
+    except KeyboardInterrupt:
+        clean()
 
 
 def display_refresh():  # v0.0.7
@@ -739,24 +741,9 @@ THREAD1.daemon = True  # v0.0.7
 try:
     THREAD1.start()  # v0.0.7
     if SIMULATOR:
-        import keyboard
-        def on_press(key):
-            if key.name == 'a':
-                GPIO.press_key(5)
-            if key.name == 'b':
-                GPIO.press_key(6)
-            if key.name == 'x':
-                GPIO.press_key(16)
-            if key.name == 'y':
-                GPIO.press_key(OBJ['gpio_ybutton']['value'])
-            if key.name == 'space':
-                print('exit')
-                import pygame
-                pygame.quit()
-                sys.exit(0)
-
-        keyboard.on_press(on_press)
-    main()
+        Simulator.simulate(main)
+    else:
+        main()
 except KeyboardInterrupt:
     clean()
 # pass

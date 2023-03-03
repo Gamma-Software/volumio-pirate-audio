@@ -30,5 +30,6 @@ def add_event_detect(pin_channels, direction, _callback, bouncetime):
 
 def input(pin):
     ret = buttons[str(pin)]
-    release_key(pin)
+    if ret != 0:
+        release_key(pin)
     return not bool(ret)
