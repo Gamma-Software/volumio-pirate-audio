@@ -1,0 +1,38 @@
+{
+    "language": {
+      "value": "Français",
+      "type": "string"
+    },
+    "language_code": {
+      "value": "fr",
+      "type": "string"
+    },
+    "background_type": {
+      "value": "background",
+      "type": "string"
+    },
+    "background_title": {
+      "value": "Stars",
+      "type": "string"
+    },
+    "background_path": {
+      "value": "stars.jpg",
+      "type": "string"
+    },
+    "background_color": {
+      "value": "#000000",
+      "type": "string"
+    },
+    "theme": {
+      "value": "default",
+      "type": "string"
+    },
+    "tos_accepted_hash": {
+      "type": "string",
+      "value": "246516446f5cd9792768c470909c8d71"
+    },
+    "tos_accepted": {
+      "type": "boolean",
+      "value": true
+    }
+  }

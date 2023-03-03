@@ -13,16 +13,26 @@ from time import strftime, gmtime, sleep, time  # v.0.0.7
 from threading import Thread
 from PIL import ImageFont, Image, ImageDraw, ImageStat, ImageFilter
 if SIMULATOR:
-    from simulator import ST7789  # simulator
+    import simulator.ST7789 as ST7789  # simulator
 else:
     import ST7789  # v0.0.6
 from socketIO_client import SocketIO
 import requests
 from numpy import mean
 if SIMULATOR:
-    pass #TODO: add GPIO simulator
+    import simulator.GPIO as GPIO  # simulator
 else:
     import RPi.GPIO as GPIO
+
+if SIMULATOR:
+    from simulator.Simulator import Simulator
+
+if SIMULATOR:
+    remote_server = 'volumio.local'
+    remote_port = 3000
+else:
+    remote_server = 'localhost'
+    remote_port = 3000
 
 # import logging
 # logging.getLogger('socketIO-client').setLevel(logging.DEBUG)
@@ -50,18 +60,20 @@ DISP = ST7789.ST7789(
 
 
 # read json file (plugin values)
-with open('/data/configuration/system_hardware/pirateaudio/config.json', 'r') as myfile:
+config_file = '/data/configuration/system_hardware/pirateaudio/config.json' if not SIMULATOR else 'config.json'
+with open(config_file, 'r') as myfile:
     DATA = myfile.read()
 OBJ = json.loads(DATA)
 
 # read json file (volumio language)
-with open('/data/configuration/miscellanea/appearance/config.json', 'r') as mylangfile:
+lang_file = '/data/configuration/miscellanea/appearance/config.json' if not SIMULATOR else 'misc_config.json'
+with open(lang_file, 'r') as mylangfile:
     DATA_LANG = mylangfile.read()
 OBJ_LANG = json.loads(DATA_LANG)
 LANGCODE = OBJ_LANG['language_code']['value']
-LANGPATH = ''.join(['/data/plugins/system_hardware/pirateaudio/i18n/strings_', LANGCODE, '.json'])  # v0.0.7
+LANGPATH = ''.join([('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_', LANGCODE, '.json'])  # v0.0.7
 if os.path.exists(LANGPATH) is False:  # fallback to en as default language
-    LANGPATH = '/data/plugins/system_hardware/pirateaudio/i18n/strings_en.json'
+    LANGPATH = ('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_en.json'
 
 # read json file (language file for translation)
 with open(LANGPATH, 'r') as mytransfile:
@@ -316,7 +328,7 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
 
 # position in code is important, so display_stuff works v.0.0.4
 display_stuff(IMAGE_DICT['BG_DEFAULT'], OBJ_TRANS['DISPLAY']['WAIT'], 0, 0, 'info')
-SOCKETIO = SocketIO('localhost', 3000)
+SOCKETIO = SocketIO(remote_server, remote_port)
 
 
 def seeking(direction):
@@ -421,9 +433,9 @@ def on_push_state(*args):
             VOLUMIO_DICT['ALBUMART'] = albumurl
             albumart2 = albumurl
             if not albumart2:  # v0.0.7 hint pylint
-                albumart2 = 'http://localhost:3000/albumart'
+                albumart2 = 'http://{remote_server}:{remote_port}/albumart'
             if 'http' not in albumart2:
-                albumart2 = ''.join(['http://localhost:3000', VOLUMIO_DICT['ALBUMART']])
+                albumart2 = ''.join(['http://{remote_server}:{remote_port}', VOLUMIO_DICT['ALBUMART']])
             response = requests.get(albumart2)
             try:  # to catch not displayable images
                 IMAGE_DICT['IMG'] = Image.open(BytesIO(response.content)).convert('RGBA')  # v.0.04 gab bei spotify probleme
@@ -488,7 +500,7 @@ def on_push_state(*args):
                     # v0.0.4 show remaining time of track
                     # print('a;',strftime("%H:%M:%S", gmtime(DURATION - int(float(SEEK)/1000))))
                     # print('B;',strftime("%-H", gmtime(DURATION - int(float(SEEK)/1000))))
-                    hour = strftime("%-H", gmtime(VOLUMIO_DICT['DURATION'] - int(float(VOLUMIO_DICT['SEEK'])/1000)))
+                    hour = strftime("%#H", gmtime(VOLUMIO_DICT['DURATION'] - int(float(VOLUMIO_DICT['SEEK'])/1000)))
                     if hour == '0':
                         remaining = ''.join(['-', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION'] - int(float(VOLUMIO_DICT['SEEK'])/1000)))])
                     else:
@@ -725,8 +737,15 @@ THREAD1 = Thread(target=display_helper)  # v0.0.7
 THREAD1.daemon = True  # v0.0.7
 
 
+if SIMULATOR:
+    Simulator = Simulator(DISP, GPIO)
+    SIMU_THREAD = Thread(target=Simulator.handle_events)
+    SIMU_THREAD.daemon = True
+
 try:
     THREAD1.start()  # v0.0.7
+    if SIMULATOR:
+        SIMU_THREAD.start()
     main()
 except KeyboardInterrupt:
     clean()
