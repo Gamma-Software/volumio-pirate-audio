@@ -1,0 +1,22 @@
+{
+  "PLUGIN_CONFIGURATION":"Configuration du plugin Pirate Audio",
+  "CONFIG": {
+    "TITLE": "Configuration Pirate Audio",
+    "LISTMAX": "Combien d'entrées maximum doivent être affichées dans une vue en liste ?",
+    "GPIOYBUTTON": "Quel pin GPIO est utilisé par votre Pirate Audio HAT et quelle est sa révision pour le bouton Y ?",
+    "SLEEPTIMER": "Après combien de minutes le timer de mise en veille doit-il arrêter Volumio ?",
+    "SAVE":"Enregistrer"
+    },
+  "DISPLAY": {
+    "MUSICSELECTION": "Selection de musique",
+    "SHUTDOWN": "Eteindre ?",
+    "REBOOT": "Redemarrer le Pi ?",
+    "LOSTCONNECTION": "Connexion perdue",
+    "EMPTY": "vide",
+    "WAIT": "Veuillez patienter",
+    "NOTSUPPORTED": "non pris en charge par le plugin",
+    "SEEK": "Recherche",
+    "PREVNEXT": "Chanson prec/sui",
+    "SETSLEEPTIMER": "Configurer le timer de mise en veille"
+  }
+}
