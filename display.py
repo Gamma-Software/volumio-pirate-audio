@@ -211,7 +211,7 @@ def on_push_browselibrary(*args):
 
 def reset_variable(varmode):
     """resets variables"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global VOLUMIO_DICT, NAV_ARRAY_SERVICE, NAV_ARRAY_NAME, NAV_ARRAY_URI, NAV_ARRAY_TYPE, NAV_DICT, IMAGE_DICT
     VOLUMIO_DICT['MODE'] = varmode
     del NAV_ARRAY_NAME[:]
@@ -220,21 +220,21 @@ def reset_variable(varmode):
     del NAV_ARRAY_SERVICE[:]
     NAV_DICT['MARKER'], NAV_DICT['LISTSTART'] = 0, 0
     IMAGE_DICT['IMG_CHECK'], VOLUMIO_DICT['ALBUMART'], VOLUMIO_DICT['STATE_LAST'] = '', '', None  # reset albumart so display gets refreshed
-    # print("reset_variable--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("reset_variable--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 def sendtodisplay(img4):
     """send img to display"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global IMAGE_DICT
     IMAGE_DICT['LASTREFRESH'] = time()
     DISP.display(img4)
-    # print("sendtodisplay--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("sendtodisplay--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test for better performance
     """create image and overlays"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global NAV_DICT  # v.0.0.4
 
     def f_drawtext(x, y, text, fontstring, fillstring=(255, 255, 255)):
@@ -289,7 +289,10 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
 
     def f_xy(text, font):
         """helper for width and height of text"""
-        len1, hei1 = draw3.textsize(text, font)
+        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+        len1 = bbox[2] - bbox[0]
+        hei1 = bbox[3] - bbox[1]
+
         x = (IMAGE_DICT['WIDTH'] - len1)//2
         Y = (IMAGE_DICT['HEIGHT'] - hei1)//2
         return [len1, hei1, x, Y]
@@ -323,7 +326,7 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
         f_drawsymbol(210, 170, u"\uf04a")  # Fontawesome symbol backward
     f_page(marked, NAV_DICT['LISTMAX'], result)
     sendtodisplay(IMAGE_DICT['IMG3'])
-    # print("displaystuff--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("displaystuff--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 # position in code is important, so display_stuff works v.0.0.4
@@ -333,7 +336,7 @@ SOCKETIO = SocketIO(remote_server, remote_port)
 
 def seeking(direction):
     """processes seeking commands"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global VOLUMIO_DICT
     step = 60000  # 60 seconds
     if direction == '+':
@@ -346,12 +349,12 @@ def seeking(direction):
             VOLUMIO_DICT['SEEK'] -= step
             SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
             display_stuff(IMAGE_DICT['BG_DEFAULT'], [OBJ_TRANS['DISPLAY']['SEEK'], ''.join([strftime("%M:%S", gmtime(int(float(VOLUMIO_DICT['SEEK']/1000)))), ' / ', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION']))])], 0, 0, 'seek')
-    # print("seeking--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("seeking--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 def prevnext(direction):
     """processes prev/next commands"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global VOLUMIO_DICT
     if VOLUMIO_DICT['POSITION'] is not None:  # v.0.0.7 as some music service dont push position
         if direction == 'prev':
@@ -365,24 +368,24 @@ def prevnext(direction):
         display_stuff(IMAGE_DICT['BG_DEFAULT'], [''.join([str(VOLUMIO_DICT['POSITION'] + 1), '/', str(LEN_QUEUE)]), OBJ_TRANS['DISPLAY']['PREVNEXT'], TITLE_QUEUE[VOLUMIO_DICT['POSITION']]], 1, 0, 'seek')
         SOCKETIO.emit('stop')
         SOCKETIO.emit('play', {"value": VOLUMIO_DICT['POSITION']})
-    # print("prevnext--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("prevnext--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 def on_push_queue(*args):
     """processes websocket informations of queue"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global TITLE_QUEUE, LEN_QUEUE
     del TITLE_QUEUE[:]
     LEN_QUEUE = 0  # v.0.0.7
     if args[0]:  # v.0.0.7
         LEN_QUEUE = len(args[0])
         TITLE_QUEUE = [args[0][i]['name'] for i in range(LEN_QUEUE)]
-    # print("on_push_queue--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("on_push_queue--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 def on_push_state(*args):
     """processes websocket informations of push state"""
-    # start_time = time()  # debug, time of code execution
+    start_time = time()  # debug, time of code execution
     global IMAGE_DICT, OVERLAY_DICT, VOLUMIO_DICT
     # WS_CONNECTED = True
     # test to get rid of unneeded, empty screen refreshs
@@ -400,7 +403,9 @@ def on_push_state(*args):
 
     def f_textsize(text, fontsize):
         """"helper textsize"""
-        w1, y1 = draw.textsize(text, fontsize)
+        font = FONT_DICT['FONT_M']
+        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+        w1 = bbox[2] - bbox[0]
         return w1
 
     def f_drawtext(x, y, text, fontstring, fillstring):
@@ -433,9 +438,9 @@ def on_push_state(*args):
             VOLUMIO_DICT['ALBUMART'] = albumurl
             albumart2 = albumurl
             if not albumart2:  # v0.0.7 hint pylint
-                albumart2 = 'http://{remote_server}:{remote_port}/albumart'
+                albumart2 = f'http://{remote_server}:{remote_port}/albumart'
             if 'http' not in albumart2:
-                albumart2 = ''.join(['http://{remote_server}:{remote_port}', VOLUMIO_DICT['ALBUMART']])
+                albumart2 = ''.join([f'http://{remote_server}:{remote_port}', VOLUMIO_DICT['ALBUMART']])
             response = requests.get(albumart2)
             try:  # to catch not displayable images
                 IMAGE_DICT['IMG'] = Image.open(BytesIO(response.content)).convert('RGBA')  # v.0.04 gab bei spotify probleme
@@ -530,7 +535,7 @@ def on_push_state(*args):
         if IMAGE_DICT['IMG_CHECK'] != IMAGE_DICT['IMG']:
             IMAGE_DICT['IMG_CHECK'] = IMAGE_DICT['IMG']
             sendtodisplay(IMAGE_DICT['IMG'])
-    # print("on_push_state--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    print("on_push_state--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
 # IMG = Image.new('RGBA', (240, 240), color=(0, 0, 0, 25))  # v.0.0.7 not needed, as we always open an image
@@ -649,7 +654,7 @@ def button_b(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
             sleep(0.5)
     elif mode in ['navigation', 'menu', 'seek', 'prevnext']:
         reset_variable('player')
-        IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
+        IMAGE_DICT['LASTREFRESH'] = time()-10  # to get display refresh independ from refresh thread
         SOCKETIO.emit('getState')
 
 
@@ -732,7 +737,7 @@ def display_helper():  # v0.0.7
     """helper function as thread"""
     while True:
         display_refresh()
-        sleep(5)
+        sleep(1)
 
 
 THREAD1 = Thread(target=display_helper)  # v0.0.7

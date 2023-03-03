@@ -5,6 +5,7 @@ from threading import Thread
 import simulator.GPIO as GPIO
 
 import queue
+import json
 
 # create a queue to share image between threads
 image_queue = queue.Queue()
@@ -22,30 +23,23 @@ def simulate(background_task):
 
     # Main game loop
     running = True
+    with open('simulator/key_map.json', 'r') as myfile:
+        DATA = myfile.read()
+        KEYBOARD_MAP = json.loads(DATA)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    GPIO.press_key(5)
-                elif event.key == pygame.K_b:
-                    GPIO.press_key(6)
-                elif event.key == pygame.K_x:
-                    GPIO.press_key(16)
-                elif event.key == pygame.K_y:
-                    GPIO.press_key(20)
-                elif event.key == pygame.K_ESCAPE:
+                for key in KEYBOARD_MAP:
+                    if event.key == pygame.key.key_code(KEYBOARD_MAP[key]["map"]):
+                        GPIO.press_key(KEYBOARD_MAP[key]["value"])
+                if event.key == pygame.K_ESCAPE:
                     running = False
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_a:
-                    GPIO.release_key(5)
-                elif event.key == pygame.K_b:
-                    GPIO.release_key(6)
-                elif event.key == pygame.K_x:
-                    GPIO.release_key(16)
-                elif event.key == pygame.K_y:
-                    GPIO.release_key(20)
+                for key in KEYBOARD_MAP:
+                    if event.key == pygame.key.key_code(KEYBOARD_MAP[key]["map"]):
+                        GPIO.release_key(KEYBOARD_MAP[key]["value"])
 
         try:
             img = image_queue.get(block=False, timeout=0.1)
@@ -65,38 +59,3 @@ def simulate(background_task):
         pygame.display.update()
         image_queue.task_done()
     pygame.quit()
-
-
-def handle_events():
-    # Handle Pygame events
-
-    keyboard.on_press_key("a", lambda _: print("You pressed A!"))
-
-    return 0
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            return False
-
-        # Handle keyboard input
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                self.gpio.press_key("5")
-            elif event.key == pygame.K_b:
-                self.gpio.press_key("6")
-            elif event.key == pygame.K_x:
-                self.gpio.press_key("16")
-            elif event.key == pygame.K_y:
-                self.gpio.press_key("20")
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
-                self.gpio.release_key("5")
-            elif event.key == pygame.K_b:
-                self.gpio.release_key("6")
-            elif event.key == pygame.K_x:
-                self.gpio.release_key("16")
-            elif event.key == pygame.K_y:
-                self.gpio.release_key("20")
-            elif event.key == pygame.K_ESCAPE:
-                # Clean up Pygame
-                pygame.quit()
-                sys.exit(0)

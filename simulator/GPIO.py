@@ -17,12 +17,10 @@ def setup(channel, pin, direction):
 
 def press_key(pin):
     buttons[str(pin)] = 1
-    print(f'Button {pin} pressed')
     callback(pin) # Call the callback function only if the button is pressed
 
 def release_key(pin):
     buttons[str(pin)] = 0
-    print(f'Button {pin} released')
 
 def add_event_detect(pin_channels, direction, _callback, bouncetime):
     global callback
