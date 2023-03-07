@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-SIMULATOR = True
+import sys
+
+# If you want to run this on a PC, set SIMULATOR to True
+SIMULATOR = sys.platform == 'win32'
 
 import os
 import os.path
@@ -289,9 +292,12 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
 
     def f_xy(text, font):
         """helper for width and height of text"""
-        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
-        len1 = bbox[2] - bbox[0]
-        hei1 = bbox[3] - bbox[1]
+        if SIMULATOR:
+            bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+            len1 = bbox[2] - bbox[0]
+            hei1 = bbox[3] - bbox[1]
+        else:
+            len1, hei1 = draw3.textsize(text, font)
 
         x = (IMAGE_DICT['WIDTH'] - len1)//2
         Y = (IMAGE_DICT['HEIGHT'] - hei1)//2
@@ -410,9 +416,12 @@ def on_push_state(*args):
 
     def f_textsize(text, fontsize):
         """"helper textsize"""
-        font = FONT_DICT['FONT_M']
-        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
-        w1 = bbox[2] - bbox[0]
+        if SIMULATOR:
+            font = FONT_DICT['FONT_M']
+            bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+            w1 = bbox[2] - bbox[0]
+        else:
+            w1, _ = draw.textsize(text, fontsize)
         return w1
 
     def f_drawtext(x, y, text, fontstring, fillstring):
