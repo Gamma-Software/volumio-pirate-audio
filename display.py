@@ -127,6 +127,10 @@ OVERLAY_DICT = {
     "DARK": False
 }
 
+wait_sleep_screen = 60
+last_time_button_pushed = time()
+screen_in_sleep = False
+
 BUTTONS = [5, 6, 16, OBJ['gpio_ybutton']['value']]
 # LABELS = ['A', 'B', 'X', 'Y']
 GPIO.setmode(GPIO.BCM)  # Set up RPi.GPIO with BCM numbering scheme
@@ -561,6 +565,16 @@ SOCKETIO.on('disconnect', on_disconnect)
 
 
 def handle_button(pin):
+    global last_time_button_pushed
+    global screen_in_sleep
+    last_time_button_pushed = time()
+
+    if screen_in_sleep:
+        screen_in_sleep = False
+        # wake up screen and don't take the button intent
+        DISP.set_backlight(True)
+        return
+
     if pin == 5:
         button_a(VOLUMIO_DICT['MODE'], VOLUMIO_DICT['STATUS'])
     if pin == 6:
@@ -747,6 +761,19 @@ def display_refresh():  # v0.0.7
     #if WS_CONNECTED and VOLUMIO_DICT['SERVICE'] not in ['webradio'] and VOLUMIO_DICT['STATUS'] not in ['stop', 'pause'] and VOLUMIO_DICT['MODE'] == 'player' and time() >= IMAGE_DICT['LASTREFRESH'] + 4.5: # v0.0.7 hint pylint
     if VOLUMIO_DICT['STATE_LAST'] and VOLUMIO_DICT['SERVICE'] not in ['webradio'] and VOLUMIO_DICT['STATUS'] not in ['stop', 'pause'] and VOLUMIO_DICT['MODE'] == 'player' and time() >= IMAGE_DICT['LASTREFRESH'] + 4.5: # v0.0.7 hint pylint
         SOCKETIO.emit('getState')
+
+    global screen_in_sleep, last_time_button_pushed
+
+    if time() >= last_time_button_pushed + wait_sleep_screen and not screen_in_sleep:
+        if VOLUMIO_DICT['MODE'] == 'player':
+            screen_in_sleep = True
+            DISP.set_backlight(False)
+        else:
+            reset_variable('player') # Go back to player mode if no button is pushed for 10 seconds
+            IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
+            SOCKETIO.emit('getState')
+            last_time_button_pushed = time()
+
 
 
 def display_helper():  # v0.0.7
