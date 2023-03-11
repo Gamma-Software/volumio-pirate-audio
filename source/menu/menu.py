@@ -1,45 +1,62 @@
-from menu_states import (
-    MainMenu,
-    BrowseMenu,
-    RebootMenu,
-    SeekMenu,
-    SleepTimerMenu,
-    AlarmMenu,
-    ShutdownMenu
-)
+import menu_states as states
 
 
 class MenuStateMachine:
     def __init__(self):
-        self.current_state = None
+        self.current_menu = None
         self.main_menu()
 
     def main_menu(self):
-        self.current_state = MainMenu()
-        self.current_state.run()
+        self.current_menu = states.main_menu
+        self.current_menu.run()
 
-    def go_back(self):
-        self.current_state = self.current_state.previous()
-        self.current_state.run()
+    def select(self, menu_selected):
+        self.current_menu = self.current_menu.next(menu_selected)
+        self.current_menu.run()
+
+    def go_back(self) -> bool:
+        if self.current_menu == states.close_menu:
+            print("Error: cannot go back")
+            return
+
+        self.current_menu = self.current_menu.previous()
+        self.current_menu.run()
 
 
 class Menu:
-    def __init__(self) -> None:
+    def __init__(self, max_menu_list) -> None:
         self.state = MenuStateMachine()
+        self.open = False
+        self.cursor = 0
+        self.max_menu_list = max_menu_list
 
-        # NAV_ARRAY_NAME, NAV_ARRAY_URI, NAV_ARRAY_TYPE, NAV_ARRAY_SERVICE = [], [], [], []
+    def cursor_up(self):
+        self.cursor -= 1
+        if self.cursor < 0:
+            self.cursor = len(self.state.current_menu.content)
 
-        # NAV_DICT = {"MARKER": 0, "LISTMAX": int(OBJ['listmax']['value']), "LISTSTART": 0, "LISTRESULT": 0}
+    def cursor_down(self):
+        self.cursor += 1
+        if self.cursor > len(self.state.current_menu.content):
+            self.cursor = 0
 
+    def button_on_click(self, button):
+        if not self.open:
+            return
 
-    def show_menu(self, menu):
-        if VOLUMIO_DICT['MODE'] == 'player':
-            VOLUMIO_DICT['MODE'] = 'menu'
-            emit_action = ['setSleep', {'enabled': 'true', 'time': strftime("%H:%M", gmtime(OBJ['sleeptimer']['value']*60))}]
-            NAV_ARRAY_NAME = [OBJ_TRANS['DISPLAY']['MUSICSELECTION'], OBJ_TRANS['DISPLAY']['SEEK'], OBJ_TRANS['DISPLAY']['PREVNEXT'], 'Sleeptimer ' + str(OBJ['sleeptimer']['value']) + 'M', OBJ_TRANS['DISPLAY']['SHUTDOWN'], OBJ_TRANS['DISPLAY']['REBOOT']]
-            NAV_ARRAY_URI = ['', 'seek', 'prevnext', emit_action, 'shutdown', 'reboot']
-            NAV_ARRAY_TYPE = ['', 'seek', 'prevnext', 'emit', 'emit', 'emit']
-            NAV_DICT['LISTRESULT'] = 6
-            display_stuff(IMAGE_DICT['BG_DEFAULT'], NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
+        if button == 'a':
+            self.state.select()
+        if button == 'x':
+            self.cursor_up()
+        if button == 'y':
+            self.cursor_down()
+        if button == 'b':
+            self.state.go_back()
 
+    def close_menu(self):
+        self.open = False
+        self.cursor = 0
 
+    def show_menu(self):
+        self.open = True
+        self.state.main_menu()

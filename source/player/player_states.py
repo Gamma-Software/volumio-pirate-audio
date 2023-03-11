@@ -6,44 +6,24 @@ class Play(State):
     def run(self):
         print("Play: play the music")
 
-    def next(self, input):
-        if input == PlayerAction.pause:
-            return PlayerAction.pause
-        if input == PlayerAction.stop:
-            return PlayerAction.stop
-        return PlayerAction.play
+    def next(self):
+        return PlayerAction.pause
 
 
 class Stop(State):
     def run(self):
         pass
 
-    def next(self, input):
-        pass
+    def next(self):
+        return PlayerAction.play
 
 
 class Pause(State):
     def run(self):
         pass
 
-    def next(self, input):
-        pass
-
-
-class VolumeUp(State):
-    def run(self):
-        pass
-
-    def next(self, input):
-        pass
-
-
-class VolumeDown(State):
-    def run(self):
-        pass
-
-    def next(self, input):
-        pass
+    def next(self):
+        return PlayerAction.play
 
 
 class ChangeMusic(State):
@@ -54,9 +34,7 @@ class ChangeMusic(State):
         pass
 
 
-PlayerAction.play = Play()
-PlayerAction.stop = Stop()
-PlayerAction.pause = Pause()
-PlayerAction.volume_up = VolumeUp()
-PlayerAction.volume_down = VolumeDown()
-PlayerAction.change_music = ChangeMusic()
+play = Play()
+stop = Stop()
+pause = Pause()
+change_music = ChangeMusic()

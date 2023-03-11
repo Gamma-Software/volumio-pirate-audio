@@ -22,9 +22,9 @@ class State:
         assert 0, "previous not implemented"
 
 
-class MainMenu(State):
+class MenuClosed(State):
     def run(self):
-        print("Menu: this is the menu")
+        print("Close the menu")
 
     def next(self, input):
         if input == MenuAction.pause:
@@ -34,7 +34,18 @@ class MainMenu(State):
         return MenuAction.play
 
     def previous(self):
-        print("Exit menu")
+        assert "cannot go back"
+
+
+class MainMenu(State):
+    def run(self):
+        print("Menu: this is the menu")
+
+    def next(self, input):
+        return
+
+    def previous(self):
+        return close_menu
 
 
 class BrowseMenu(State):
@@ -83,3 +94,13 @@ class ShutdownMenu(State):
 
     def next(self, input):
         pass
+
+
+main_menu = MainMenu()
+close_menu = MenuClosed()
+shutdown_menu = ShutdownMenu()
+alarm_menu = AlarmMenu()
+sleep_timer_menu = SleepTimerMenu()
+seek_menu = SeekMenu()
+reboot_menu = RebootMenu()
+browse_menu = BrowseMenu()

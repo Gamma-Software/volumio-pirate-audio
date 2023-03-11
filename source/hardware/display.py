@@ -67,6 +67,9 @@ class DisplayHandler:
         self.display_stuff(self.screen.default_background,
                            self.messages['LOSTCONNECTION'], 0, 0, 'info')
 
+    def refresh(self):
+        pass
+
     @check_perfo
     def sendtodisplay(self, image_to_display):
         """send img to display"""
