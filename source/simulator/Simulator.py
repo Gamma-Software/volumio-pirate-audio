@@ -2,7 +2,7 @@
 import sys
 import keyboard
 from threading import Thread
-import simulator.GPIO as GPIO
+import source.simulator.GPIO as GPIO
 
 import queue
 import json
@@ -23,7 +23,7 @@ def simulate(background_task):
 
     # Main game loop
     running = True
-    with open('simulator/key_map.json', 'r') as myfile:
+    with open('source/simulator/key_map.json', 'r') as myfile:
         DATA = myfile.read()
         KEYBOARD_MAP = json.loads(DATA)
     while running:

@@ -1,4 +1,3 @@
-
 class PlayerAction:
     def __init__(self, action):
         self.action = action
@@ -10,4 +9,3 @@ class PlayerAction:
 
     def __hash__(self):
         return hash(self.action)
-

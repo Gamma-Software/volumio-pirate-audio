@@ -1,4 +1,4 @@
-from simulator.Simulator import image_queue
+from source.simulator.Simulator import image_queue
 
 
 # Create ST7789 LCD Display class.
