@@ -9,6 +9,7 @@ from source.menu.menu import Menu
 from source.hardware.display import DisplayHandler
 from source.hardware.buttons import ButtonHandler
 from .state_machine import PlayerStateMachine
+import source.menu.menu_states as ms
 
 from source import SIMULATOR
 
@@ -34,9 +35,6 @@ class Player:
         self.remote_host = host
         self.remote_port = port
         self.menu = menu
-        self.menu.add_listener(self.on_menu_close, "close")
-        self.menu.add_listener(self.reboot, "reboot")
-        self.menu.add_listener(self.shutdown, "shutdown")
         self.display = display
         if SIMULATOR:
             self.display.display.display_callback(simulator.display_image)
@@ -81,7 +79,6 @@ class Player:
 
             if button == 'x':
                 self.menu.show_menu()
-                self.buttons.add_callbacks(self.menu.button_on_click, priority=1)
 
             if button == 'a':
                 new_state = self.player_state_machine.play_pause()
@@ -91,8 +88,24 @@ class Player:
                 self.last_data["status"] = new_state
                 self.socket_on_push_state(self.last_data)
 
+        # If the menu is open, we are in the menu
+        else:
+            next_state = self.menu.button_on_click(button)
+
+            if not issubclass(next_state, ms.MenuClosed):
+                return
+
+            # Handle actions when the menu is closed
+            # depending on the reason
+            if ms.close_menu_state.close_on == ms.sleep_timer_menu_state:
+                self.start_sleep_timer()
+            if ms.close_menu_state.close_on == ms.shutdown_menu_state:
+                self.shutdown()
+            if ms.close_menu_state.close_on == ms.reboot_menu_state:
+                self.reboot()
+            self.on_menu_close()
+
     def on_menu_close(self):
-        self.buttons.remove_callbacks(self.menu.button_on_click)
         self.socket_on_push_state(self.last_data)
 
     def shutdown(self):
@@ -100,14 +113,12 @@ class Player:
         self.display.display_shutdown()
 
         self.buttons.remove_all_listeners()
-        self.menu.remove_all_listeners()
 
     def reboot(self):
         self.socket.emit('reboot')
         self.display.display_reboot()
 
         self.buttons.remove_all_listeners()
-        self.menu.remove_all_listeners()
 
     def start_sleep_timer(self):
         self.socket.emit('setSleep')  # TODO: add timer

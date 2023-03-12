@@ -63,15 +63,15 @@ class StateImp(State):
 
 
 class MenuClosed(StateImp):
+    def __init__(self, messages):
+        super().__init__(messages)
+        self.close_on: State = None
+
     def run(self):
-        print("Close the menu")
+        print(f"Close the menu on {self.close_on}")
 
     def next(self, input) -> State:
-        if input == MenuAction.pause:
-            return MenuAction.pause
-        if input == MenuAction.stop:
-            return MenuAction.stop
-        return MenuAction.play
+        self.close_on = None
 
     def select(self, input):
         pass
@@ -188,7 +188,6 @@ class SeekMenu(StateImp):
 class SleepTimerMenu(StateImp):
     def run(self):
         super().run()
-        next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
         return close_menu_state

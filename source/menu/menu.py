@@ -28,62 +28,32 @@ class MenuStateMachine:
 
 class Menu:
     def __init__(self, display: DisplayHandler) -> None:
-        self.state = MenuStateMachine()
+        self.current_menu = MenuStateMachine()
         self.display = display
         self.open = False
         self.cursor = 0
-        self.listeners = []
-
-    def clean(self):
-        self.remove_all_listeners()
-
-    def remove_all_listeners(self):
-        self.listeners = []
-
-    def add_listener(self, listener, name, priority=0):
-        if listener in self.listeners:
-            return
-        if priority == 0:
-            self.listeners.insert(0, (name, listener))
-        else:
-            self.listeners.append((name, listener))
 
     def cursor_up(self):
         self.cursor -= 1
         if self.cursor < 0:
-            self.cursor = len(self.state.current_menu.choices) - 1
+            self.cursor = len(self.current_menu.current_menu.choices) - 1
 
     def cursor_down(self):
         self.cursor += 1
-        if self.cursor >= len(self.state.current_menu.choices):
+        if self.cursor >= len(self.current_menu.current_menu.choices):
             self.cursor = 0
 
     def show_menu(self):
         self.open = True
-        self.state.open_menu()
+        self.current_menu.open_menu()
         self.update_menu()
 
     def close_menu(self):
         self.open = False
-        for name, trigger in self.listeners:
-            if trigger and name == "close" and callable(trigger):
-                trigger()
-
-    def reboot(self):
-        self.open = False
-        for name, trigger in self.listeners:
-            if trigger and name == "reboot" and callable(trigger):
-                trigger()
-
-    def shutdown(self):
-        self.open = False
-        for name, trigger in self.listeners:
-            if trigger and name == "shutdown" and callable(trigger):
-                trigger()
 
     def update_menu(self):
         if self.open:
-            self.display.display_menu(self.state.current_menu.choices, self.cursor)
+            self.display.display_menu(self.current_menu.current_menu.choices, self.cursor)
 
     def button_on_click(self, button):
         if not self.open:
@@ -91,23 +61,18 @@ class Menu:
 
         if button == 'a':
             self.cursor = 0
-            self.state.select(self.cursor)
-            if self.state.current_menu == states.shutdown_menu_state:
-                self.shutdown()
-                return
-            if self.state.current_menu == states.reboot_menu_state:
-                self.reboot()
-                return
+            self.current_menu.select(self.cursor)
         if button == 'x':
             self.cursor_up()
         if button == 'y':
             self.cursor_down()
         if button == 'b':
             self.cursor = 0
-            self.state.go_back()
-            if self.state.current_menu == states.close_menu_state:
+            self.current_menu.go_back()
+            if self.current_menu.current_menu == states.close_menu_state:
                 self.close_menu()
-                return
 
         # Update the menu
         self.update_menu()
+
+        return self.current_menu
