@@ -1,5 +1,4 @@
-from state import State
-from player_actions import PlayerAction
+from .state import State
 
 
 class Play(State):
@@ -7,7 +6,7 @@ class Play(State):
         print("Play: play the music")
 
     def next(self):
-        return PlayerAction.pause
+        return pause
 
 
 class Stop(State):
@@ -15,7 +14,7 @@ class Stop(State):
         pass
 
     def next(self):
-        return PlayerAction.play
+        return play
 
 
 class Pause(State):
@@ -23,7 +22,7 @@ class Pause(State):
         pass
 
     def next(self):
-        return PlayerAction.play
+        return play
 
 
 class ChangeMusic(State):

@@ -1,6 +1,7 @@
-import time
+from time import strftime, gmtime, sleep, time  # v.0.0.7
 from math import ceil
-from PIL import Image, ImageDraw
+from numpy import mean
+from PIL import ImageFont, Image, ImageDraw, ImageStat, ImageFilter
 
 from source import SIMULATOR
 from source.debug import print_debug, check_perfo
@@ -10,6 +11,57 @@ if SIMULATOR:
 else:
     import ST7789
 
+DEFAULT_IMAGE = 'images/default.jpg'
+
+
+class ScreenSleepData:
+    def __init__(self, time_to_sleep) -> None:
+        self.sleeping = False
+        self.time_to_sleep = time_to_sleep
+        self.timer = time()
+
+
+class ScreenData:
+    def __init__(self, max_list, time_to_sleep) -> None:
+        self.width = 240
+        self.height = 240
+        self.screen_size = (self.width, self.height)
+        self.default_background = Image.open(DEFAULT_IMAGE).resize(self.screen_size)
+        self.current_image = self.default_background.copy()
+        self.second_image = self.default_background.copy()
+        self.third_image = self.default_background.copy()
+        self.image_check = ''
+        self.last_refresh = 0
+        self.max_list = max_list
+        self.sleep = ScreenSleepData(time_to_sleep)
+
+
+class OverlayData:
+    def __init__(self) -> None:
+        self.txt_color = (255, 255, 255)
+        self.str_color = (15, 15, 15)
+        self.bar_bg_color = (200, 200, 200)
+        self.bar_color = (255, 255, 255)
+        self.dark = False
+
+    def contrast_overlay(self, im_stats):
+        """ in case of dark background, change the overlay color """
+        im_mean = im_stats.mean
+        mn = mean(im_mean)
+        self.txt_color = (255, 255, 255)
+        self.str_color = (15, 15, 15)
+        self.bar_bg_color = (200, 200, 200)
+        self.bar_color = (255, 255, 255)
+        self.dark = False
+        if mn > 175:
+            self.overlay.txt_color = (55, 55, 55)
+            self.str_color = (200, 200, 200)  # v0.0.4 needed for shadow
+            self.dark = True
+            self.bar_bg_color = (255, 255, 255)
+            self.bar_color = (100, 100, 100)
+        if mn < 80:
+            self.overlay.txt_color = (200, 200, 200)
+
 
 class DisplayHandler:
     def __init__(self, fonts, messages, time_to_sleep=60, max_list=5) -> None:
@@ -17,28 +69,10 @@ class DisplayHandler:
         self.messages = messages
 
         # screen
-        self.screen.width = 240
-        self.screen.height = 240
-        self.screen.screen_size = (self.width, self.height)
-        self.screen.default_background = Image.open('images/default.jpg').resize(self.screen_size)
-        self.screen.current_image = self.screen.default_background.copy()
-        self.screen.second_image = self.screen.default_background.copy()
-        self.screen.third_image = self.screen.default_background.copy()
-        self.screen.image_check = None
-        self.screen.last_refresh = 0
-        self.screen.max_list = max_list
-
-        # screen.sleep
-        self.screen.sleep.sleeping = False
-        self.screen.sleep.time_to_sleep = time_to_sleep
-        self.screen.sleep.timer = time.time()
+        self.screen = ScreenData(max_list, time_to_sleep)
 
         # overlay
-        self.overlay.txt_color = (255, 255, 255)
-        self.overlay.str_color = (15, 15, 15)
-        self.overlay.bar_bg_color = (200, 200, 200)
-        self.overlay.bar_color = (255, 255, 255)
-        self.overlay.dark = False
+        self.overlay = OverlayData()
 
         self.display = ST7789.ST7789(
             height=240,  # v0.0.6
@@ -59,7 +93,14 @@ class DisplayHandler:
     def display_connect(self):
         """display connect"""
         self.display.set_backlight(True)
-        self.display_stuff(self.screen.default_background)
+        self.display_stuff(self.screen.default_background,
+                           self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
+
+    def display_link(self):
+        """display connect"""
+        self.display.set_backlight(True)
+        self.display_stuff(self.screen.default_background,
+                           'test', 0, 0, 'info')
 
     def display_disconnect(self):
         """display disconnect"""
@@ -74,7 +115,7 @@ class DisplayHandler:
     def sendtodisplay(self, image_to_display):
         """send img to display"""
         self.screen.last_refresh = time()
-        self.display_stuff(image_to_display)
+        self.display.display(image_to_display)
 
     @check_perfo
     def display_stuff(self, picture, text, marked, start, icons='nav'):
@@ -88,7 +129,7 @@ class DisplayHandler:
             """draw symbols"""
             draw3.text((x, y), text, font=fontstring, fill=fillstring)
 
-        @check_perfo
+        #@check_perfo
         def f_textcontent(text, start, listmax1):
             """draw content"""
             if isinstance(text, list):  # check if text is array
@@ -142,7 +183,7 @@ class DisplayHandler:
             Y = (self.screen.height - hei1)//2
             return [len1, hei1, x, Y]
 
-        @check_perfo
+        #@check_perfo
         def f_page(marked, listmax2, result):
             """pageindicator"""
             page = int(ceil((float(marked) + 1)/float(listmax2)))
@@ -175,3 +216,98 @@ class DisplayHandler:
 
         self.sendtodisplay(self.screen.third_image)
         return self.screen.third_image
+
+    def f_textsize(self, text, font, fontsize):
+        """"helper textsize"""
+        if not self.draw:
+            raise RuntimeError('No draw object available')
+
+        if SIMULATOR:
+            bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+            w1 = bbox[2] - bbox[0]
+        else:
+            w1, _ = self.draw.textsize(text, fontsize)
+        return w1
+
+    def f_drawtext(self, x, y, text, fontstring, fillstring):
+        """draw text"""
+        if not self.draw:
+            raise RuntimeError('No draw object available')
+
+        self.draw.text((x, y), text, font=fontstring, fill=fillstring)
+
+    def f_x1(self, textwidth):
+        """helper textwidth"""
+        if textwidth <= self.screen.width:
+            x1 = (self.screen.width - textwidth)//2
+        else:
+            x1 = 0
+        return x1
+
+    def f_content(self, text, fontsize, top, shadowoffset=1):
+        """draw content"""
+        w1 = self.f_textsize(text, self.fonts['FONT_M'], fontsize)
+        x1 = self.f_x1(w1)
+        self.f_drawtext(x1 + shadowoffset, top + shadowoffset,
+                        text, fontsize,
+                        self.overlay.str_color)
+        self.f_drawtext(x1, top, text,
+                        fontsize, self.overlay.txt_color)
+
+    def f_background(self, album_image):
+        """helper background"""
+        try:  # to catch not displayable images
+            self.screen.current_image = Image.open(album_image).convert('RGBA')  # v.0.04 gab bei spotify probleme
+            self.screen.current_image = self.screen.current_image.resize(self.screen.screen_size)
+            self.screen.current_image = self.screen.current_image.filter(ImageFilter.BLUR)  # Blur
+        except (ValueError, RuntimeError):
+            self.screen.current_image = self.screen.default_background.copy()
+
+        self.screen.second_image = self.screen.current_image.copy()
+
+        im_stat = ImageStat.Stat(self.screen.current_image)
+        self.overlay.contrast_overlay(im_stat)
+        return self.screen.current_image
+
+    def f_displayoverlay(self, varstatus, volume, data):
+        """displayoverlay"""
+        self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
+
+        if varstatus == 'play':
+            self.f_drawtext(4, 53, u"\uf04C", self.fonts['FONT_FAS'], self.overlay.txt_color)
+        else:
+            self.f_drawtext(4, 53, u"\uf04b", self.fonts['FONT_FAS'], self.overlay.txt_color)
+        self.f_drawtext(210, 53, u"\uf0c9", self.fonts['FONT_FAS'], self.overlay.txt_color)
+        self.f_drawtext(210, 174, u"\uf028", self.fonts['FONT_FAS'], self.overlay.txt_color)
+
+        # text
+        self.f_content(data['artist'], self.fonts['FONT_M'], 7, 2)
+        self.f_content(data['album'], self.fonts['FONT_M'], 35, 2)
+        self.f_content(data['title'], self.fonts['FONT_L'], 105, 2)
+
+        # volumebar
+        self.draw.rectangle((5, 184, self.screen.width - 34, 184 + 8),
+                            self.overlay.bar_bg_color)  # background
+        self.draw.rectangle((5, 184, int((float(volume)/100)*(self.screen.width - 33)), 184 + 8),
+                            self.overlay.bar_color)  # foreground
+
+    def f_timebar(self, data, duration):
+        """helper timebar"""
+        self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
+        if 'seek' in data and data['seek'] is not None and data['seek'] != 0:
+            self.draw.rectangle((5, 230, self.screen.width - 5, 230 + 8), self.overlay.bar_bg_color)  # background
+            self.draw.rectangle((5, 230, int((float(int(float(data['seek'])/1000))/float(int(float(data['duration']))))*(self.screen.width-10)), 230 + 8), self.overlay.bar_color)
+
+            hour = strftime("%#H", gmtime(duration - int(float(data['seek'])/1000)))
+            if hour == '0':
+                remaining = ''.join(['-', strftime("%M:%S", gmtime(duration - int(float(data['seek'])/1000)))])
+            else:
+                minute = strftime("%#M", gmtime(duration - int(float(data['seek'])/1000)))
+                minute = str((int(hour)*60) + int(minute))
+                remaining = ''.join(['-', minute, ':', strftime("%S", gmtime(duration - int(float(data['seek'])/1000)))])
+            # print('remaining:', remaining)
+
+            #remaining = ''.join(['-', strftime("%M:%S", gmtime(DURATION - int(float(SEEK)/1000)))])
+            w4 = self.f_textsize(remaining, self.fonts['FONT_M'], self.fonts['FONT_M'])
+            self.f_drawtext(self.screen.width - w4 - 2 + 2, 206 - 2 + 2, remaining, self.fonts['FONT_M'], self.overlay.str_color)  # shadow, fill by mean
+            self.f_drawtext(self.screen.width - w4 - 2, 206 - 2, remaining, self.fonts['FONT_M'], self.overlay.txt_color)  # fill by mean

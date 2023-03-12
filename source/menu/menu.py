@@ -1,4 +1,4 @@
-import menu_states as states
+import source.menu.menu_states as states
 
 
 class MenuStateMachine:
@@ -24,11 +24,12 @@ class MenuStateMachine:
 
 
 class Menu:
-    def __init__(self, max_menu_list) -> None:
+    def __init__(self, max_menu_list, sleeptimer) -> None:
         self.state = MenuStateMachine()
         self.open = False
         self.cursor = 0
         self.max_menu_list = max_menu_list
+        self.sleeptimer = sleeptimer
 
     def cursor_up(self):
         self.cursor -= 1

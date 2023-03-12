@@ -1,6 +1,3 @@
-from source.simulator.Simulator import image_queue
-
-
 # Create ST7789 LCD Display class.
 class ST7789:
     def __init__(self, height, width, rotation, port, cs, dc,
@@ -15,10 +12,14 @@ class ST7789:
         self.spi_speed_hz = spi_speed_hz
         self.offset_left = offset_left
         self.offset_top = offset_top
+        self.image_to_display = None
+
+    def display_callback(self, callback):
+        self.callback = callback
 
     def set_backlight(self, value):
-        print("backlight Not implemented on simulator")
+        pass
 
     def display(self, image):
-        # put the image in the queue
-        image_queue.put(image)
+        if self.callback and callable(self.callback):
+            self.callback(image)

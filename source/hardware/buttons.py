@@ -2,7 +2,8 @@ import time
 
 from source import SIMULATOR
 if SIMULATOR:
-    import simulator.GPIO as GPIO  # simulator
+    from source.simulator.gpio import GPIOSingleton  # simulator
+    GPIO = GPIOSingleton()
 else:
     import RPi.GPIO as GPIO
 
@@ -10,7 +11,7 @@ else:
 class ButtonHandler:
     def __init__(self, button_mapping) -> None:
         self.button_mapping = button_mapping
-        self.callbacks = None
+        self.callbacks = []
         GPIO.setmode(GPIO.BCM)
 
         # Setup GPIO pins
@@ -30,4 +31,6 @@ class ButtonHandler:
 
     def handle_button(self, pin):
         for call in self.callbacks:
-            call(self.button_mapping[pin])
+            key = list(self.button_mapping.keys())[
+                list(self.button_mapping.values()).index(pin)]
+            call(key)
