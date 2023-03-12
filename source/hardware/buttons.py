@@ -23,14 +23,27 @@ class ButtonHandler:
         except (ValueError, RuntimeError) as e:
             print('ERROR at setup channel:', e)
 
-    def add_callbacks(self, callback):
-        self.callbacks.append(callback)
+    def remove_all_listers(self):
+        self.callbacks = []
+
+    def add_callbacks(self, callback, priority=0):
+        if callback in self.callbacks:
+            return
+        if priority == 0:
+            self.callbacks.insert(0, callback)
+        else:
+            self.callbacks.append(callback)
+
+    def remove_callbacks(self, callback):
+        self.callbacks.remove(callback)
 
     def clean(self):
         GPIO.cleanup(list(self.button_mapping.values()))
 
     def handle_button(self, pin):
-        for call in self.callbacks:
+        # Avoid the fact that the callback list may change during the loop
+        current_callbacks = self.callbacks.copy()
+        for call in current_callbacks:
             key = list(self.button_mapping.keys())[
                 list(self.button_mapping.values()).index(pin)]
             call(key)

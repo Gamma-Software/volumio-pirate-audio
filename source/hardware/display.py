@@ -1,10 +1,10 @@
-from time import strftime, gmtime, sleep, time  # v.0.0.7
+from time import strftime, gmtime, time  # v.0.0.7
 from math import ceil
 from numpy import mean
-from PIL import ImageFont, Image, ImageDraw, ImageStat, ImageFilter
+from PIL import Image, ImageDraw, ImageStat, ImageFilter
 
 from source import SIMULATOR
-from source.debug import print_debug, check_perfo
+from source.debug import check_perfo
 
 if SIMULATOR:
     import source.simulator.ST7789 as ST7789  # simulator
@@ -12,6 +12,15 @@ else:
     import ST7789
 
 DEFAULT_IMAGE = 'images/default.jpg'
+PLAY_BUTTON_UNICODE = u"\uf04B"
+PAUSE_BUTTON_UNICODE = u"\uf04C"
+STOP_BUTTON_UNICODE = u"\uf04D"
+MENU_BUTTON_UNICODE = u"\uf0c9"
+
+#VOLUME_MUTE_UNICODE = u"\uf2e2"
+VOLUME_LOW_UNICODE = u"\uf027"
+#VOLUME_UNICODE = u"\uf6a8"
+VOLUME_HIGH_UNICODE = u"\uf028"
 
 
 class ScreenSleepData:
@@ -94,19 +103,31 @@ class DisplayHandler:
         """display connect"""
         self.display.set_backlight(True)
         self.display_stuff(self.screen.default_background,
-                           self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
-
-    def display_link(self):
-        """display connect"""
-        self.display.set_backlight(True)
-        self.display_stuff(self.screen.default_background,
-                           'test', 0, 0, 'info')
+                           self.messages['DISPLAY']['WAIT'], 0, 'info')
 
     def display_disconnect(self):
         """display disconnect"""
         self.display.set_backlight(True)
         self.display_stuff(self.screen.default_background,
-                           self.messages['LOSTCONNECTION'], 0, 0, 'info')
+                           self.messages['LOSTCONNECTION'], 0, 'info')
+
+    def display_menu(self, menu_list, cursor):
+        """display menu"""
+        self.display.set_backlight(True)
+        self.display_stuff(self.screen.default_background,
+                           menu_list, cursor, "nav")
+
+    def display_shutdown(self):
+        self.display.set_backlight(True)
+        # TODO : add a shutdown message
+        self.display_stuff(self.screen.default_background,
+                           ['executing:', 'shutdown'], 0, 'info')
+
+    def display_reboot(self):
+        self.display.set_backlight(True)
+        # TODO : add a reboot message
+        self.display_stuff(self.screen.default_background,
+                           ['executing:', 'reboot'], 0, 'info')
 
     def refresh(self):
         pass
@@ -118,7 +139,7 @@ class DisplayHandler:
         self.display.display(image_to_display)
 
     @check_perfo
-    def display_stuff(self, picture, text, marked, start, icons='nav'):
+    def display_stuff(self, picture, text, marked, icons='nav'):
         """create image and overlays"""
 
         def f_drawtext(x, y, text, fontstring, fillstring=(255, 255, 255)):
@@ -130,9 +151,13 @@ class DisplayHandler:
             draw3.text((x, y), text, font=fontstring, fill=fillstring)
 
         #@check_perfo
-        def f_textcontent(text, start, listmax1):
+        def f_textcontent(text, marked, listmax1):
             """draw content"""
             if isinstance(text, list):  # check if text is array
+                starting_position = [i // self.screen.max_list * self.screen.max_list
+                                     for i in range(0, len(text))]
+                start = starting_position[marked]
+
                 result = len(text)  # count items of list/array
                 totaltextheight = 0
                 i = 0
@@ -198,7 +223,7 @@ class DisplayHandler:
         else:
             self.screen.third_image = Image.open(picture).convert('RGBA')  # v.0.0.4
         draw3 = ImageDraw.Draw(self.screen.third_image, 'RGBA')
-        result = f_textcontent(text, start, self.screen.max_list)
+        result = f_textcontent(text, marked, self.screen.max_list)
         # draw symbols
         if icons == 'nav':
             f_drawsymbol(0, 50, u"\uf14a")  # Fontawesome symbol ok
@@ -273,12 +298,21 @@ class DisplayHandler:
         """displayoverlay"""
         self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
 
-        if varstatus == 'play':
-            self.f_drawtext(4, 53, u"\uf04C", self.fonts['FONT_FAS'], self.overlay.txt_color)
+        if varstatus in ['pause', 'stop']:
+            self.f_drawtext(4, 53, PLAY_BUTTON_UNICODE,
+                            self.fonts['FONT_FAS'], self.overlay.txt_color)
         else:
-            self.f_drawtext(4, 53, u"\uf04b", self.fonts['FONT_FAS'], self.overlay.txt_color)
-        self.f_drawtext(210, 53, u"\uf0c9", self.fonts['FONT_FAS'], self.overlay.txt_color)
-        self.f_drawtext(210, 174, u"\uf028", self.fonts['FONT_FAS'], self.overlay.txt_color)
+            self.f_drawtext(4, 53, PAUSE_BUTTON_UNICODE,
+                            self.fonts['FONT_FAS'], self.overlay.txt_color)
+        self.f_drawtext(210, 53, MENU_BUTTON_UNICODE,
+                        self.fonts['FONT_FAS'], self.overlay.txt_color)
+
+        if volume >= 0 and volume <= 49:
+            self.f_drawtext(200, 174, VOLUME_LOW_UNICODE,
+                            self.fonts['FONT_FAS'], self.overlay.txt_color)
+        else:
+            self.f_drawtext(200, 174, VOLUME_HIGH_UNICODE,
+                            self.fonts['FONT_FAS'], self.overlay.txt_color)
 
         # text
         self.f_content(data['artist'], self.fonts['FONT_M'], 7, 2)
@@ -286,10 +320,11 @@ class DisplayHandler:
         self.f_content(data['title'], self.fonts['FONT_L'], 105, 2)
 
         # volumebar
-        self.draw.rectangle((5, 184, self.screen.width - 34, 184 + 8),
+        self.draw.rectangle((5, 184, self.screen.width - 44, 184 + 8),
                             self.overlay.bar_bg_color)  # background
-        self.draw.rectangle((5, 184, int((float(volume)/100)*(self.screen.width - 33)), 184 + 8),
-                            self.overlay.bar_color)  # foreground
+
+        self.draw.rectangle((5, 184, 5 + int((float(volume)/100)*(self.screen.width - 48)),
+                            184 + 8), self.overlay.bar_color)  # foreground
 
     def f_timebar(self, data, duration):
         """helper timebar"""

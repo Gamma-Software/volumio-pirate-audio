@@ -703,6 +703,7 @@ def button_x(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
                     NAV_DICT['LISTSTART'] = int(NAV_DICT['LISTSTART'] + (floor(NAV_DICT['LISTRESULT']/NAV_DICT['LISTMAX'])*NAV_DICT['LISTMAX']))
             NAV_DICT['LISTSTART'] = int(floor(NAV_DICT['MARKER']/NAV_DICT['LISTMAX'])*NAV_DICT['LISTMAX'])  # definiert das blaettern zur naechsten Seite
             display_stuff(IMAGE_DICT['BG_DEFAULT'], NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
+            print(NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
             sleep(0.1)  # v.0.0.7
     elif mode == 'seek':  # v.0.0.4
         seeking('+')
@@ -728,6 +729,7 @@ def button_y(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
                     NAV_DICT['MARKER'] = 0
                     NAV_DICT['LISTSTART'] = 0
                 display_stuff(IMAGE_DICT['BG_DEFAULT'], NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
+                print(NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
                 sleep(0.1)  # v.0.0.7
 
 

@@ -1,5 +1,10 @@
 from source.debug import print_debug
 
+STATE_PLAY = "play"
+STATE_PAUSE = "pause"
+STATE_STOP = "stop"
+
+
 class Music:
     def __init__(self, name, artist, album_art, album_uri, duration):
         self.name = name
@@ -12,7 +17,7 @@ class Music:
 class PlayerStateMachine:
     def __init__(self):
         self.is_playing = False
-        self.status = "stop"
+        self.status = STATE_STOP
         self.service = None
         self.mode = None
         self.last_state = None
@@ -42,15 +47,15 @@ class PlayerStateMachine:
                     self.elapsed_time = data['seek']
 
     def play_pause(self):
-        if self.status == 'play' and\
+        if self.status == STATE_PLAY and\
            self.service == 'webradio':
-            self.status = 'stop'
+            self.status = STATE_STOP
             print_debug("Stopping webradio")
-        elif self.status == 'play':
-            self.status = 'pause'
+        elif self.status == STATE_PLAY:
+            self.status = STATE_PAUSE
             print_debug("Pausing")
         else:
-            self.status = 'play'
+            self.status = STATE_PLAY
             print_debug("Playing")
         return self.status
 

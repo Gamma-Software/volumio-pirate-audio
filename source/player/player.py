@@ -1,4 +1,5 @@
 import sys
+import time
 import typing
 import requests
 from io import BytesIO
@@ -33,12 +34,14 @@ class Player:
         self.remote_host = host
         self.remote_port = port
         self.menu = menu
+        self.menu.add_listener(self.on_menu_close, "close")
+        self.menu.add_listener(self.reboot, "reboot")
+        self.menu.add_listener(self.shutdown, "shutdown")
         self.display = display
         if SIMULATOR:
             self.display.display.display_callback(simulator.display_image)
         self.buttons = buttons
         self.buttons.add_callbacks(self.button_on_click)
-        self.buttons.add_callbacks(self.menu.button_on_click)
         self.last_data = None
 
         self.player_state_machine = PlayerStateMachine()
@@ -47,22 +50,6 @@ class Player:
         """helper function as thread"""
         self.socket.emit('getState', '', self.socket_on_push_state)
         return
-
-        """#if WS_CONNECTED and VOLUMIO_DICT['SERVICE'] not in ['webradio'] and VOLUMIO_DICT['STATUS'] not in ['stop', 'pause'] and VOLUMIO_DICT['MODE'] == 'player' and time() >= IMAGE_DICT['LASTREFRESH'] + 4.5: # v0.0.7 hint pylint
-        if self.player_state_machine.last_state and VOLUMIO_DICT['SERVICE'] not in ['webradio'] and VOLUMIO_DICT['STATUS'] not in ['stop', 'pause'] and VOLUMIO_DICT['MODE'] == 'player' and time() >= IMAGE_DICT['LASTREFRESH'] + 4.5: # v0.0.7 hint pylint
-            SOCKETIO.emit('getState')
-
-        global screen_in_sleep, last_time_button_pushed
-
-        if time() >= last_time_button_pushed + wait_sleep_screen and not screen_in_sleep:
-            if VOLUMIO_DICT['MODE'] == 'player':
-                screen_in_sleep = True
-                DISP.set_backlight(False)
-            else:
-                reset_variable('player') # Go back to player mode if no button is pushed for 10 seconds
-                IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
-                SOCKETIO.emit('getState')
-                last_time_button_pushed = time()"""
 
     def start(self):
         print("Starting player main loop")
@@ -79,25 +66,51 @@ class Player:
             if button == 'b':
                 self.player_state_machine.volume_down()
                 self.socket.emit('volume', '-')
+                time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
                 self.last_data["volume"] = self.player_state_machine.current_volume
                 self.socket_on_push_state(self.last_data)
+
             if button == 'y':
                 self.player_state_machine.volume_up()
                 self.socket.emit('volume', '+')
+                time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
                 self.last_data["volume"] = self.player_state_machine.current_volume
                 self.socket_on_push_state(self.last_data)
+
             if button == 'x':
-                #self.menu.show_menu()
-                print("Menu not implemented yet")
-                pass
+                self.menu.show_menu()
+                self.buttons.add_callbacks(self.menu.button_on_click, priority=1)
+
             if button == 'a':
                 new_state = self.player_state_machine.play_pause()
                 self.socket.emit(new_state)
+                time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
                 self.last_data["status"] = new_state
                 self.socket_on_push_state(self.last_data)
+
+    def on_menu_close(self):
+        self.buttons.remove_callbacks(self.menu.button_on_click)
+        self.socket_on_push_state(self.last_data)
+
+    def shutdown(self):
+        self.socket.emit('shutdown')
+        self.display.display_shutdown()
+
+        self.buttons.remove_all_listeners()
+        self.menu.remove_all_listeners()
+
+    def reboot(self):
+        self.socket.emit('reboot')
+        self.display.display_reboot()
+
+        self.buttons.remove_all_listeners()
+        self.menu.remove_all_listeners()
+
+    def start_sleep_timer(self):
+        self.socket.emit('setSleep')  # TODO: add timer
 
     def socket_on_connect(self):
         self.socket.on('pushState', self.socket_on_push_state)
@@ -131,14 +144,16 @@ class Player:
             if "http" not in data['albumart']:
                 albumart_url = ''.join([f'http://{self.remote_host}:{self.remote_port}',
                                         data['albumart'].encode('ascii', 'ignore').decode('utf-8')])
-            else:
+            else:  # in case the albumart is already local file
                 albumart_url = data['albumart'].encode('ascii', 'ignore').decode('utf-8')
 
+            # Download album art only if it changed
             if self.player_state_machine.music_data.album_uri != albumart_url:
-                response = requests.get(albumart_url)
+                self.last_response = requests.get(albumart_url)
                 self.player_state_machine.music_data.album_uri = albumart_url
-                self.player_state_machine.music_data.album_art = self.display.f_background(
-                    BytesIO(response.content))
+
+            self.player_state_machine.music_data.album_art = self.display.f_background(
+                BytesIO(self.last_response.content))
 
             self.display.f_displayoverlay(self.player_state_machine.status,
                                           self.player_state_machine.current_volume,
@@ -149,7 +164,6 @@ class Player:
             #if self.display.screen.image_check != self.display.screen.current_image:
             self.display.screen.image_check = self.display.screen.current_image
             self.display.sendtodisplay(self.display.screen.current_image)
-
 
     def socket_on_push_browsesources(
             self, dict_resources: typing.Tuple[typing.List[typing.Dict[str, typing.Any]]]):
@@ -165,5 +179,6 @@ class Player:
     def clean(self):
         """cleanes up at exit, even if service is stopped"""
         self.display.clean()
-        self.buttons.clean()
+        self.buttons.remove_all_listeners()
+        self.menu.remove_all_listeners()
         sys.exit(0)
