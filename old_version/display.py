@@ -5,6 +5,7 @@ import sys
 # If you want to run this on a PC, set SIMULATOR to True
 SIMULATOR = sys.platform == 'win32'
 
+from pathlib import Path
 import os
 import os.path
 from io import BytesIO
@@ -16,19 +17,19 @@ from time import strftime, gmtime, sleep, time  # v.0.0.7
 from threading import Thread
 from PIL import ImageFont, Image, ImageDraw, ImageStat, ImageFilter
 if SIMULATOR:
-    import source.simulator.ST7789 as ST7789  # simulator
+    import simulator.ST7789 as ST7789  # simulator
 else:
     import ST7789  # v0.0.6
 from socketIO_client import SocketIO
 import requests
 from numpy import mean
 if SIMULATOR:
-    import source.simulator.GPIO as GPIO  # simulator
+    import simulator.GPIO as GPIO  # simulator
 else:
     import RPi.GPIO as GPIO
 
 if SIMULATOR:
-    import source.simulator.Simulator as Simulator
+    import simulator.Simulator as Simulator
 
 if SIMULATOR:
     remote_server = 'volumio.local'
@@ -42,9 +43,9 @@ else:
 # logging.basicConfig()
 
 # get the path of the script
-SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_ROOT_PATH = Path(__file__).parent.parent.absolute()
 # set script path as current directory
-os.chdir(SCRIPT_PATH)
+os.chdir(SCRIPT_ROOT_PATH)
 
 
 # Create ST7789 LCD Display class.
@@ -63,20 +64,20 @@ DISP = ST7789.ST7789(
 
 
 # read json file (plugin values)
-config_file = '/data/configuration/system_hardware/pirateaudio/config.json' if not SIMULATOR else 'config.json'
+config_file = '/data/configuration/system_hardware/pirateaudio/config.json' if not SIMULATOR else SCRIPT_ROOT_PATH / 'config.json'
 with open(config_file, 'r') as myfile:
     DATA = myfile.read()
 OBJ = json.loads(DATA)
 
 # read json file (volumio language)
-lang_file = '/data/configuration/miscellanea/appearance/config.json' if not SIMULATOR else 'misc_config.json'
+lang_file = '/data/configuration/miscellanea/appearance/config.json' if not SIMULATOR else  SCRIPT_ROOT_PATH / 'misc_config.json'
 with open(lang_file, 'r') as mylangfile:
     DATA_LANG = mylangfile.read()
 OBJ_LANG = json.loads(DATA_LANG)
 LANGCODE = OBJ_LANG['language_code']['value']
-LANGPATH = ''.join([('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_', LANGCODE, '.json'])  # v0.0.7
+LANGPATH = ''.join([('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else str(SCRIPT_ROOT_PATH) + "/") + 'i18n/strings_', LANGCODE, '.json'])  # v0.0.7
 if os.path.exists(LANGPATH) is False:  # fallback to en as default language
-    LANGPATH = ('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_en.json'
+    LANGPATH = ('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else str(SCRIPT_ROOT_PATH) + "/") + 'i18n/strings_en.json'
 
 # read json file (language file for translation)
 with open(LANGPATH, 'r') as mytransfile:
@@ -86,10 +87,10 @@ OBJ_TRANS = json.loads(DATA_TRANS)
 TITLE_QUEUE, LEN_QUEUE = [], 0  # v.0.0.4
 NAV_ARRAY_NAME, NAV_ARRAY_URI, NAV_ARRAY_TYPE, NAV_ARRAY_SERVICE = [], [], [], []
 FONT_DICT = {
-    "FONT_S": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 20),
-    "FONT_M": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 24),
-    "FONT_L": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 30),
-    "FONT_FAS": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/FontAwesome5-Free-Solid.otf']), 28)
+    "FONT_S": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 20),
+    "FONT_M": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 24),
+    "FONT_L": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 30),
+    "FONT_FAS": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/FontAwesome5-Free-Solid.otf']), 28)
 }
 IMAGE_DICT = {
     "WIDTH": 240,
@@ -585,7 +586,7 @@ def handle_button(pin):
         button_y(VOLUMIO_DICT['MODE'], VOLUMIO_DICT['STATUS'])
 
 
-def button_a(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (lokale variable) ersetzengg
+def button_a(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (lokale variable) ersetzen
     #print('button_a, mode:', mode, 'pin:', pin)
     browselibrary = False
     if mode == 'player':
@@ -737,7 +738,6 @@ def setup_channel(channel):
         print('register %d' % channel)  # v0.0.6
         GPIO.setup(channel, GPIO.IN, GPIO.PUD_UP)
         GPIO.add_event_detect(channel, GPIO.FALLING, handle_button, bouncetime=250)
-        # GPIO.add_event_detect(channel, GPIO.FALLING, wake_up_screen, bouncetime=250)
         print('success')
         sleep(0.1)  # v.0.0.7
     except (ValueError, RuntimeError) as e:

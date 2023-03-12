@@ -4,7 +4,7 @@ After=syslog.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /data/plugins/system_hardware/pirateaudio/display.py
+ExecStart= pirate_audio_plugin
 Restart=always
 StandardOutput=syslog
 StandardError=syslog

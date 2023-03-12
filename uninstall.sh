@@ -1,7 +1,7 @@
 #!/bin/bash
 papath=/data/plugins/system_hardware/pirateaudio
 echo "Uninstall pirate audio dependencies"
-# Delete service 
+# Delete service
 sudo rm -rf /etc/systemd/system/pirateaudio.service
 # inform system about deleted service
 sudo systemctl daemon-reload
@@ -17,6 +17,9 @@ sudo sed -i '/### Start of parameters for pirateaudio plugin ###/d' /boot/userco
 
 # Uninstall dependendencies
 # apt-get remove -y
+
+# Remove plugin python installation by deleting virtual environment
+sudo rm -R /data/plugins/system_hardware/pirateaudio/.venv
 
 echo "Done"
 echo "plugin uninstallend"
