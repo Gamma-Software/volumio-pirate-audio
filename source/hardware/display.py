@@ -152,6 +152,8 @@ class DisplayHandler:
 
         #@check_perfo
         def f_textcontent(text, marked, listmax1):
+            if text == []:
+                return
             """draw content"""
             if isinstance(text, list):  # check if text is array
                 starting_position = [i // self.screen.max_list * self.screen.max_list

@@ -41,8 +41,10 @@ class Player:
         self.buttons = buttons
         self.buttons.add_callbacks(self.button_on_click)
         self.last_data = None
-
         self.player_state_machine = PlayerStateMachine()
+
+        self.socket.once('connect', self.socket_on_connect)
+        self.socket.on('disconnect', self.socket_on_disconnect)
 
     def refresh(self):
         """helper function as thread"""
@@ -92,7 +94,7 @@ class Player:
         else:
             next_state = self.menu.button_on_click(button)
 
-            if not issubclass(next_state, ms.MenuClosed):
+            if not isinstance(next_state.state, ms.MenuClosed):
                 return
 
             # Handle actions when the menu is closed
@@ -126,10 +128,9 @@ class Player:
     def socket_on_connect(self):
         self.socket.on('pushState', self.socket_on_push_state)
         self.socket.emit('getState', '', self.socket_on_push_state)
-        self.socket.on('pushBrowseSources', self.socket_on_push_browsesources)
-        self.socket.on('pushBrowseLibrary', self.socket_on_push_browselibrary)
         self.socket.on('pushQueue', self.socket_on_push_queue)
         self.socket.emit('getQueue', self.socket_on_push_queue)
+        self.menu.socket_on_connect()
 
     def socket_on_disconnect(self):
         self.display.display_disconnect()
@@ -175,14 +176,6 @@ class Player:
             #if self.display.screen.image_check != self.display.screen.current_image:
             self.display.screen.image_check = self.display.screen.current_image
             self.display.sendtodisplay(self.display.screen.current_image)
-
-    def socket_on_push_browsesources(
-            self, dict_resources: typing.Tuple[typing.List[typing.Dict[str, typing.Any]]]):
-        """processes websocket informations of browsesources"""
-        self.menu.run(dict_resources)
-
-    def socket_on_push_browselibrary(self, data):
-        pass
 
     def socket_on_push_queue(self, queue):
         self.player_state_machine.queue = queue

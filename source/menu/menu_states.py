@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from source.utils import MESSAGES_DATA, CONFIG_DATA
 
 from source.debug import print_debug
+from source.utils import MESSAGES_DATA, CONFIG_DATA
 
 
 class MenuAction:
@@ -19,7 +19,7 @@ class MenuAction:
 
 class State(ABC):
     @abstractmethod
-    def run(self):
+    def run(self, callback):
         pass
 
     @abstractmethod
@@ -42,9 +42,11 @@ class State(ABC):
 class StateImp(State):
     def __init__(self, messages):
         self.messages = messages
+        self.waiting_for_data = False
         self.choices = []
 
-    def run(self):
+    def run(self, action_callback):
+        self.callback = action_callback
         print_debug("Run -> Menu: " + self.__class__.__name__)
         choices_msg = '\n\t'.join(self.choices)
         print_debug(choices_msg)
@@ -67,7 +69,8 @@ class MenuClosed(StateImp):
         super().__init__(messages)
         self.close_on: State = None
 
-    def run(self):
+    def run(self, callback):
+        super().run(callback)
         print(f"Close the menu on {self.close_on}")
 
     def next(self, input) -> State:
@@ -84,7 +87,7 @@ class MenuClosed(StateImp):
 
 
 class MainMenu(StateImp):
-    def __init__(self, messages):
+    def __init__(self, messages,):
         super().__init__(messages)
         self.choices = [self.messages['DISPLAY']['MUSICSELECTION'],
                         self.messages['DISPLAY']['SEEK'],
@@ -93,8 +96,8 @@ class MainMenu(StateImp):
                         self.messages['DISPLAY']['SHUTDOWN'],
                         self.messages['DISPLAY']['REBOOT']]
 
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
 
     def next(self, input) -> State:
         choice = self.choices[input]
@@ -102,9 +105,7 @@ class MainMenu(StateImp):
             raise ValueError("Invalid input")
 
         if choice == self.messages['DISPLAY']['MUSICSELECTION']:
-            print("Not implemented yet")
-            #return BrowseMenu(self.messages)
-            return
+            return browse_source_menu_state
         if choice == self.choices[1]:  # seek
             return seek_menu_state
         if choice == self.choices[2]:  # next/previous music
@@ -126,20 +127,53 @@ class MainMenu(StateImp):
         return close_menu_state
 
 
-class BrowseMenu(StateImp):
+class BrowseLibraryMenu(StateImp):
     def __init__(self, messages):
         super().__init__(messages)
         self.choices = []  # The choices are set in the callback function
+        self.waiting_for_data = True
 
     def update_choices(self, data):
         self.choices = [data[0][i]['name']
                         for i in range(len(data[0]))]
+        self.waiting_for_data = False
 
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
+        self.waiting_for_data = True
+        self.callback()
 
     def next(self, input) -> State:
+        return browse_source_menu_state
+
+    def up_down(self, input):
         pass
+
+    def select(self, input):
+        pass
+
+    def previous(self) -> State:
+        pass
+
+
+class BrowseSourceMenu(StateImp):
+    def __init__(self, messages):
+        super().__init__(messages)
+        self.choices = []  # The choices are set in the callback function
+        self.waiting_for_data = True
+
+    def update_choices(self, data):
+        self.choices = [data[0][i]['name']
+                        for i in range(len(data[0]))]
+        self.waiting_for_data = False
+
+    def run(self, callback):
+        super().run(callback)
+        self.waiting_for_data = True
+        self.callback()
+
+    def next(self, input) -> State:
+        return
 
     def up_down(self, input):
         pass
@@ -152,8 +186,9 @@ class BrowseMenu(StateImp):
 
 
 class RebootMenu(StateImp):
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
+        next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
         pass
@@ -169,8 +204,8 @@ class RebootMenu(StateImp):
 
 
 class SeekMenu(StateImp):
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
 
     def next(self, input) -> State:
         pass
@@ -186,8 +221,8 @@ class SeekMenu(StateImp):
 
 
 class SleepTimerMenu(StateImp):
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
 
     def next(self, input) -> State:
         return close_menu_state
@@ -203,8 +238,8 @@ class SleepTimerMenu(StateImp):
 
 
 class AlarmMenu(StateImp):
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
 
     def next(self, input) -> State:
         pass
@@ -220,8 +255,8 @@ class AlarmMenu(StateImp):
 
 
 class ShutdownMenu(StateImp):
-    def run(self):
-        super().run()
+    def run(self, callback):
+        super().run(callback)
         next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
@@ -244,4 +279,5 @@ alarm_menu_state = AlarmMenu(MESSAGES_DATA)
 sleep_timer_menu_state = SleepTimerMenu(MESSAGES_DATA)
 seek_menu_state = SeekMenu(MESSAGES_DATA)
 reboot_menu_state = RebootMenu(MESSAGES_DATA)
-browse_menu_state = BrowseMenu(MESSAGES_DATA)
+browse_source_menu_state = BrowseSourceMenu(MESSAGES_DATA)
+browse_library_menu_state = BrowseLibraryMenu(MESSAGES_DATA)

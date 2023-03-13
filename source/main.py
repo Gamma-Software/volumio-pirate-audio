@@ -36,13 +36,10 @@ def init():
 
     display = DisplayHandler(fonts, MESSAGES_DATA)
     buttons = ButtonHandler({"a": 5, "b": 6, "x": 16, "y": CONFIG_DATA['gpio_ybutton']['value']})  # TODO make this configurable
-    menu = Menu(display)
     remote_host = 'localhost' if not SIMULATOR else 'volumio.local'
     socket = SocketIO(remote_host, 3000)
+    menu = Menu(socket, display)
     player = Player(socket, display, buttons, menu, remote_host, 3000)
-
-    socket.once('connect', player.socket_on_connect)
-    socket.on('disconnect', player.socket_on_disconnect)
 
     def socket_thread():
         print("Socket thread started")
