@@ -132,10 +132,17 @@ class BrowseLibraryMenu(StateImp):
         super().__init__(messages)
         self.choices = []  # The choices are set in the callback function
         self.waiting_for_data = True
+        self.services = []
+        self.types = []
+        self.uri = []
 
     def update_choices(self, data):
-        self.choices = [data[0][i]['name']
-                        for i in range(len(data[0]))]
+        list_result = len(data['navigation']['lists'][0]['items'])
+        self.services = [data['navigation']['lists'][0]['items'][i]['service'] for i in range(list_result) if 'service' in data['navigation']['lists'][0]['items'][i]]
+        self.types = [data['navigation']['lists'][0]['items'][i]['type'] for i in range(list_result)]
+        self.choices = [data['navigation']['lists'][0]['items'][i]['title'] for i in range(list_result) if 'title' in data['navigation']['lists'][0]['items'][i]]
+        self.uri = [data['navigation']['lists'][0]['items'][i]['uri'] for i in range(list_result) if 'uri' in data['navigation']['lists'][0]['items'][i]]
+
         self.waiting_for_data = False
 
     def run(self, callback):
@@ -144,7 +151,7 @@ class BrowseLibraryMenu(StateImp):
         self.callback()
 
     def next(self, input) -> State:
-        return browse_source_menu_state
+        return close_menu_state
 
     def up_down(self, input):
         pass
@@ -153,18 +160,19 @@ class BrowseLibraryMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return browse_source_menu_state
 
 
 class BrowseSourceMenu(StateImp):
     def __init__(self, messages):
         super().__init__(messages)
         self.choices = []  # The choices are set in the callback function
+        self.uri = []
         self.waiting_for_data = True
 
     def update_choices(self, data):
-        self.choices = [data[0][i]['name']
-                        for i in range(len(data[0]))]
+        self.choices = [data[i]['name'] for i in range(len(data))]
+        self.uri = [data[i]['uri'] for i in range(len(data))]
         self.waiting_for_data = False
 
     def run(self, callback):
@@ -173,7 +181,7 @@ class BrowseSourceMenu(StateImp):
         self.callback()
 
     def next(self, input) -> State:
-        return
+        return browse_library_menu_state
 
     def up_down(self, input):
         pass
@@ -182,7 +190,7 @@ class BrowseSourceMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 class RebootMenu(StateImp):
@@ -191,7 +199,7 @@ class RebootMenu(StateImp):
         next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
-        pass
+        return close_menu_state
 
     def up_down(self, input):
         pass
@@ -200,7 +208,7 @@ class RebootMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 class SeekMenu(StateImp):
@@ -217,7 +225,7 @@ class SeekMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 class SleepTimerMenu(StateImp):
@@ -234,7 +242,7 @@ class SleepTimerMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 class AlarmMenu(StateImp):
@@ -242,7 +250,7 @@ class AlarmMenu(StateImp):
         super().run(callback)
 
     def next(self, input) -> State:
-        pass
+        return close_menu_state
 
     def up_down(self, input):
         pass
@@ -251,7 +259,7 @@ class AlarmMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 class ShutdownMenu(StateImp):
@@ -260,7 +268,7 @@ class ShutdownMenu(StateImp):
         next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
-        pass
+        return close_menu_state
 
     def up_down(self, input):
         pass
@@ -269,7 +277,7 @@ class ShutdownMenu(StateImp):
         pass
 
     def previous(self) -> State:
-        pass
+        return main_menu_state
 
 
 main_menu_state = MainMenu(MESSAGES_DATA)

@@ -63,13 +63,13 @@ class OverlayData:
         self.bar_color = (255, 255, 255)
         self.dark = False
         if mn > 175:
-            self.overlay.txt_color = (55, 55, 55)
+            self.txt_color = (55, 55, 55)
             self.str_color = (200, 200, 200)  # v0.0.4 needed for shadow
             self.dark = True
             self.bar_bg_color = (255, 255, 255)
             self.bar_color = (100, 100, 100)
         if mn < 80:
-            self.overlay.txt_color = (200, 200, 200)
+            self.txt_color = (200, 200, 200)
 
 
 class DisplayHandler:
