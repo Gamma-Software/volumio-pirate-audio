@@ -99,31 +99,14 @@ class Player:
 
             # Handle actions when the menu is closed
             # depending on the reason
-            if ms.close_menu_state.close_on == ms.sleep_timer_menu_state:
-                self.start_sleep_timer()
-            if ms.close_menu_state.close_on == ms.shutdown_menu_state:
-                self.shutdown()
-            if ms.close_menu_state.close_on == ms.reboot_menu_state:
-                self.reboot()
             self.on_menu_close()
 
     def on_menu_close(self):
-        self.socket_on_push_state(self.last_data)
-
-    def shutdown(self):
-        self.socket.emit('shutdown')
-        self.display.display_shutdown()
-
-        self.buttons.remove_all_listeners()
-
-    def reboot(self):
-        self.socket.emit('reboot')
-        self.display.display_reboot()
-
-        self.buttons.remove_all_listeners()
-
-    def start_sleep_timer(self):
-        self.socket.emit('setSleep')  # TODO: add timer
+        if self.menu.state_machine.state == ms.close_menu_state:
+            if not self.menu.state_machine.state.close_on:
+                self.socket_on_push_state(self.last_data)
+                return
+        self.socket.emit('getState', '', self.socket_on_push_state)
 
     def socket_on_connect(self):
         self.socket.on('pushState', self.socket_on_push_state)
@@ -140,6 +123,10 @@ class Player:
                              data: typing.Tuple[typing.Dict[str, typing.Any]]):
         print_debug(f"State received {data}")
         self.last_data = data
+
+        if 'album' in data.keys():
+            if not data['album']:
+                data['album'] = ""  # In case of radio, album is not set
 
         if not data['title'] and not data['artist'] \
            and not data['album'] and len(self.player_state_machine.queue) > 0:

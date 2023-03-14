@@ -72,22 +72,23 @@ class MenuClosed(StateImp):
     def run(self, callback):
         super().run(callback)
         print(f"Close the menu on {self.close_on}")
+        self.callback()
 
     def next(self, input) -> State:
         self.close_on = None
 
     def select(self, input):
-        pass
+        return
 
     def up_down(self, input):
-        pass
+        return
 
     def previous(self) -> State:
         assert "cannot go back"
 
 
 class MainMenu(StateImp):
-    def __init__(self, messages,):
+    def __init__(self, messages):
         super().__init__(messages)
         self.choices = [self.messages['DISPLAY']['MUSICSELECTION'],
                         self.messages['DISPLAY']['SEEK'],
@@ -151,6 +152,10 @@ class BrowseLibraryMenu(StateImp):
         self.callback()
 
     def next(self, input) -> State:
+        for types in ['folder', 'radio-', 'streaming-']:
+            if types in self.types[input]:
+                # We create a new instance of BrowseLibraryMenu with other data
+                return BrowseLibraryMenu(MESSAGES_DATA)
         return close_menu_state
 
     def up_down(self, input):

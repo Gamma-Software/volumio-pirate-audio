@@ -317,9 +317,15 @@ class DisplayHandler:
                             self.fonts['FONT_FAS'], self.overlay.txt_color)
 
         # text
-        self.f_content(data['artist'], self.fonts['FONT_M'], 7, 2)
-        self.f_content(data['album'], self.fonts['FONT_M'], 35, 2)
-        self.f_content(data['title'], self.fonts['FONT_L'], 105, 2)
+        if 'artist' in data.keys():
+            if data['artist']:
+                self.f_content(data['artist'], self.fonts['FONT_M'], 7, 2)
+        if 'album' in data.keys():
+            if data['album']:
+                self.f_content(data['album'], self.fonts['FONT_M'], 35, 2)
+        if 'title' in data.keys():
+            if data['title']:
+                self.f_content(data['title'], self.fonts['FONT_L'], 105, 2)
 
         # volumebar
         self.draw.rectangle((5, 184, self.screen.width - 44, 184 + 8),
@@ -331,7 +337,7 @@ class DisplayHandler:
     def f_timebar(self, data, duration):
         """helper timebar"""
         self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
-        if 'seek' in data and data['seek'] is not None and data['seek'] != 0:
+        if 'seek' in data and 'duration' in data and data['seek'] is not None and data['seek'] != 0 and data['duration'] != 0:
             self.draw.rectangle((5, 230, self.screen.width - 5, 230 + 8), self.overlay.bar_bg_color)  # background
             self.draw.rectangle((5, 230, int((float(int(float(data['seek'])/1000))/float(int(float(data['duration']))))*(self.screen.width-10)), 230 + 8), self.overlay.bar_color)
 

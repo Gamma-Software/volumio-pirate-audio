@@ -1,3 +1,4 @@
+import time
 import typing
 
 from socketIO_client import SocketIO
@@ -61,7 +62,7 @@ class Menu:
 
     def socket_on_push_browselibrary(
             self, dict_resources):
-        if self.state_machine.state != states.browse_library_menu_state:
+        if not isinstance(self.state_machine.state, states.BrowseLibraryMenu):
             return
         self.state_machine.state.update_choices(dict_resources)
         self.update_menu()
@@ -77,22 +78,23 @@ class Menu:
             self.cursor = 0
 
     def on_menu_actions(self):
+        if self.state_machine.state == states.close_menu_state:
+            self.close_menu()
         if self.state_machine.state == states.browse_source_menu_state:
             self.socket.emit('getBrowseSources', '', self.socket_on_push_browsesources)
-        if self.state_machine.state == states.browse_library_menu_state and\
-           self.state_machine.last_state == states.browse_source_menu_state:
-            self.socket.emit('browseLibrary', {'uri': self.state_machine.last_state.uri[self.cursor]})
-        if self.state_machine.state == states.browse_source_menu_state:
-            # Play music
-            service = self.state_machine.state.services[self.cursor]
-            name = self.state_machine.state.choices[self.cursor]
-            type = self.state_machine.state.types[self.cursor]
-            uri = self.state_machine.state.uri[self.cursor]
-            service = self.state_machine.state.services[self.cursor]
-            self.socket.emit('replaceAndPlay', {
-                "service": service, "type":
-                type, "title": name,
-                "uri": uri})
+        if isinstance(self.state_machine.state, states.BrowseLibraryMenu) and\
+           (self.state_machine.last_state == states.browse_source_menu_state or \
+            self.state_machine.last_state == states.browse_library_menu_state):
+            if self.state_machine.state.types != []:
+                for types in ['folder', 'radio-', 'streaming-']:
+                    if types in self.state_machine.state.types[self.cursor]:
+                        self.socket.emit('browseLibrary',
+                                    {'uri': self.state_machine.last_state.uri[
+                                        self.cursor].replace('mnt/', 'music-library/')})
+                        return
+            self.socket.emit('browseLibrary',
+                            {'uri': self.state_machine.last_state.uri[
+                                self.cursor]})
 
     def show_menu(self):
         self.open = True
@@ -102,11 +104,50 @@ class Menu:
     def close_menu(self):
         self.open = False
 
+        if self.state_machine.state != states.close_menu_state:
+            return
+
+        self.state_machine.state.close_on = self.state_machine.last_state
+
+        if isinstance(self.state_machine.state.close_on, states.BrowseLibraryMenu):
+            service = self.state_machine.last_state.services[self.cursor]
+            name = self.state_machine.last_state.choices[self.cursor]
+            type = self.state_machine.last_state.types[self.cursor]
+            uri = self.state_machine.last_state.uri[self.cursor]
+            if type == 'playlist':
+                if service == 'mpd':
+                    self.socket.emit('playPlaylist', {'name': name})
+                    return
+                if service == 'spop':
+                    self.socket.emit('stop')
+                    time.sleep(2)
+            print("PLAY -> service: " + service + " type: " + type + " name: " + name + " uri: " + uri)
+            self.socket.emit('replaceAndPlay', {
+                "service": service, "type":
+                type, "title": name,
+                "uri": uri})
+        if self.state_machine.state.close_on == states.sleep_timer_menu_state:
+            self.start_sleep_timer()
+        if self.state_machine.state.close_on == states.shutdown_menu_state:
+            self.shutdown()
+        if self.state_machine.state.close_on == states.reboot_menu_state:
+            self.reboot()
+
+    def shutdown(self):
+        self.socket.emit('shutdown')
+        self.display.display_shutdown()
+
+    def reboot(self):
+        self.socket.emit('reboot')
+        self.display.display_reboot()
+
+    def start_sleep_timer(self):
+        self.socket.emit('setSleep')  # TODO: add timer
+
+
     def update_menu(self):
         if not self.open:
             return
-        if self.state_machine.states == states.close_menu_state:
-            self.close_menu()
         if self.state_machine.state.waiting_for_data:
             self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
         else:
