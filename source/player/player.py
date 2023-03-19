@@ -60,7 +60,7 @@ class Player:
             simulator.start(self.socket)
 
     def button_on_click(self, button):
-        print("Button pressed: " + str(button))
+        #print("Button pressed: " + str(button))
         # If the menu is closed, we are in the player
         if not self.menu.open:  # In Player
             if button == 'b':
@@ -102,10 +102,9 @@ class Player:
             self.on_menu_close()
 
     def on_menu_close(self):
-        if self.menu.state_machine.state == ms.close_menu_state:
-            if not self.menu.state_machine.state.close_on:
-                self.socket_on_push_state(self.last_data)
-                return
+        if not self.menu.state_machine.state.close_on:
+            self.socket_on_push_state(self.last_data)
+            return
         self.socket.emit('getState', '', self.socket_on_push_state)
 
     def socket_on_connect(self):
@@ -157,7 +156,8 @@ class Player:
             self.display.f_displayoverlay(self.player_state_machine.status,
                                           self.player_state_machine.current_volume,
                                           data)
-            self.display.f_timebar(data, self.player_state_machine.duration)
+            if self.player_state_machine.music_data.duration:
+                self.display.f_timebar(data, self.player_state_machine.music_data.duration)
 
             # display only if img changed
             #if self.display.screen.image_check != self.display.screen.current_image:

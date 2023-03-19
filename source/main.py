@@ -29,7 +29,6 @@ def init():
             os.path.join(SCRIPT_ROOT_PATH, 'fonts/Roboto-Medium.ttf'), 24),
         "FONT_L": ImageFont.truetype(
             os.path.join(SCRIPT_ROOT_PATH, 'fonts/Roboto-Medium.ttf'), 30),
-        #os.path.join(SCRIPT_ROOT_PATH, 'fonts/FontAwesome5-Free-Solid.otf'), 28)
         "FONT_FAS": ImageFont.truetype(
             os.path.join(SCRIPT_ROOT_PATH, 'fonts/Font Awesome 6 Free-Solid-900.otf'), 28)
     }

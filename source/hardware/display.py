@@ -114,6 +114,9 @@ class DisplayHandler:
     def display_menu(self, menu_list, cursor):
         """display menu"""
         self.display.set_backlight(True)
+
+        if len(menu_list) == 0:
+            menu_list = self.messages['DISPLAY']['EMPTY']
         self.display_stuff(self.screen.default_background,
                            menu_list, cursor, "nav")
 
@@ -132,13 +135,13 @@ class DisplayHandler:
     def refresh(self):
         pass
 
-    @check_perfo
+    #@check_perfo
     def sendtodisplay(self, image_to_display):
         """send img to display"""
         self.screen.last_refresh = time()
         self.display.display(image_to_display)
 
-    @check_perfo
+    #@check_perfo
     def display_stuff(self, picture, text, marked, icons='nav'):
         """create image and overlays"""
 
