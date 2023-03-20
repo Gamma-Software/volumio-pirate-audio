@@ -111,14 +111,14 @@ class DisplayHandler:
         self.display_stuff(self.screen.default_background,
                            self.messages['LOSTCONNECTION'], 0, 0, 'info')
 
-    def display_menu(self, menu_list, cursor):
+    def display_menu(self, menu_list, cursor, icon='nav'):
         """display menu"""
         self.display.set_backlight(True)
 
         if len(menu_list) == 0:
             menu_list = self.messages['DISPLAY']['EMPTY']
         self.display_stuff(self.screen.default_background,
-                           menu_list, cursor, cursor, "nav")
+                           menu_list, cursor, cursor, icon)
 
     def display_shutdown(self):
         self.display.set_backlight(True)
@@ -238,6 +238,7 @@ class DisplayHandler:
         elif icons == 'info':
             f_drawsymbol(10, 10, u"\uf05a")  # Fontawesome symbol info
         elif icons == 'seek':
+            f_drawsymbol(0, 50, u"\uf14a")  # Fontawesome symbol ok
             f_drawsymbol(210, 50, u"\uf04e")  # Fontawesome symbol forward
             f_drawsymbol(0, 170, u"\uf0e2")  # Fontawesome symbol back
             f_drawsymbol(210, 170, u"\uf04a")  # Fontawesome symbol backward

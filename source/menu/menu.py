@@ -1,3 +1,4 @@
+import time
 import typing
 
 from socketIO_client import SocketIO
@@ -43,6 +44,12 @@ class MenuStateMachine:
         self.update_choices(dict_queue)
         self.update_menu_callback()
 
+    def on_push_state(self, data):
+        if not isinstance(self.state, states.SeekMenu):
+            return
+        self.state.update_duration(data)
+        self.update_menu_callback()
+
     def open_menu(self):
         self.state = states.MainMenu(MESSAGES_DATA, self.socket,
                                      self.on_push_browsesources,
@@ -85,10 +92,11 @@ class Menu:
         self.open = False
         self.cursor = 0
 
-    def socket_on_connect(self):
+    def register_events(self):
         self.socket.on('pushBrowseSources', self.state_machine.on_push_browsesources)
         self.socket.on('pushBrowseLibrary', self.state_machine.on_push_browselibrary)
         self.socket.on('pushQueue', self.state_machine.on_get_queue)
+        self.socket.on('pushState', self.state_machine.on_push_state)
 
     def cursor_up(self):
         self.cursor -= 1
@@ -103,6 +111,7 @@ class Menu:
     def show_menu(self):
         self.open = True
         self.state_machine.open_menu()
+        self.register_events()
         self.update_menu()
 
     def close_menu(self):
@@ -139,7 +148,19 @@ class Menu:
             return
 
         if isinstance(self.state_machine.state, states.PrevNextMenu):
-            self.display.display_menu(self.state_machine.state.choices, self.cursor)
+            self.display.display_menu(self.state_machine.state.choices, self.cursor, 'seek')
+            return
+
+        if isinstance(self.state_machine.state, states.SeekMenu):
+            if not self.state_machine.state.seek or not self.state_machine.state.current_duration:
+                return
+            seek_msg = time.strftime("%M:%S", time.gmtime(
+                int(float(self.state_machine.state.seek/1000))))
+            duration_msg = time.strftime("%M:%S", time.gmtime(
+                self.state_machine.state.current_duration))
+
+            self.display.display_menu([MESSAGES_DATA['DISPLAY']['SEEK'],
+                                      ''.join([seek_msg, ' / ', duration_msg])], 0, 'seek')
             return
 
         self.display.display_menu(self.state_machine.state.choices, self.cursor)
@@ -156,8 +177,10 @@ class Menu:
                 self.cursor = 0
             if button == 'x':
                 self.cursor_up()
+                self.state_machine.state.up_down("up")
             if button == 'y':
                 self.cursor_down()
+                self.state_machine.state.up_down("down")
         if button == 'b':
             self.cursor = 0
             self.state_machine.go_back()

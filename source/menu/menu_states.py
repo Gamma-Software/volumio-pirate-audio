@@ -267,15 +267,45 @@ class SeekMenu(StateImp):
                  on_push_browselibrary, on_push_queue):
         super().__init__(messages, socket, on_push_browsesources,
                          on_push_browselibrary, on_push_queue)
+        self.current_duration = None
+        self.seek = None
 
     def run(self):
         super().run()
+        # Update data
+        self.socket.emit('getState', '', self.update_duration)
 
     def next(self, input) -> State:
-        pass
+        self.socket.emit('seek', int(float(self.seek/1000)))
+        return MenuClosed(SeekMenu, MESSAGES_DATA, self.socket,
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
 
     def up_down(self, input):
-        pass
+        if not self.current_duration and not self.seek:
+            return
+        step = 30000  # 30 seconds
+        if input == 'up':
+            if int(float((self.seek + step)/1000)) < self.current_duration:
+                self.seek += step
+        elif input == 'down':
+            if int(float((self.seek - step)/1000)) > 0:
+                self.seek -= step
+
+        if int(float(self.seek/1000)) > self.current_duration:
+            self.seek = self.current_duration * 1000
+        if int(float(self.seek/1000)) < 0:
+            self.seek = 0
+
+    def update_duration(self, data):
+        print(data)
+        if 'duration' not in data:
+            return
+        self.current_duration = data['duration']
+        if self.current_duration != 0:
+            if 'seek' in data and data['seek'] is not None:
+                self.seek = data['seek']
 
     def select(self, input):
         pass

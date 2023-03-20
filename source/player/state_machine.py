@@ -6,9 +6,10 @@ STATE_STOP = "stop"
 
 
 class Music:
-    def __init__(self, name, artist, album_art, album_uri, duration):
-        self.name = name
+    def __init__(self, title, artist, album_name, album_art, album_uri, duration):
+        self.title = title
         self.artist = artist
+        self.album_name = album_name
         self.album_art = album_art
         self.album_uri = album_uri
         self.duration = duration
@@ -24,7 +25,7 @@ class PlayerStateMachine:
         self.current_volume = 50  # by default the volume is 50%
         self.current_position = 0  # by default the position is 0
         self.elapsed_time = 0
-        self.music_data = Music(None, None, None, None, None)  # TODO
+        self.music_data = Music(None, None, None, None, None, None)  # TODO
         self.queue = []
 
     def parse_data(self, data):
@@ -41,10 +42,22 @@ class PlayerStateMachine:
             self.service = data['service']
 
         if 'duration' in data:
-            self.duration = data['duration']
-            if self.duration != 0:
+            self.music_data.duration = data['duration']
+            if self.music_data.duration != 0:
                 if 'seek' in data and data['seek'] is not None:
                     self.elapsed_time = data['seek']
+
+        if 'title' in data.keys():
+            self.music_data.title = data['title']
+        if 'artist' in data.keys():
+            self.music_data.artist = data['artist']
+        if 'album' in data.keys():
+            self.music_data.album_name = data['album']
+        if 'albumart' in data.keys():
+            self.music_data.album_art = data['albumart']
+        if 'uri' in data.keys():
+            self.music_data.album_uri = data['uri']
+
 
     def play_pause(self):
         if self.status == STATE_PLAY and\

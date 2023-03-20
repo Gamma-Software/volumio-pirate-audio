@@ -43,7 +43,7 @@ class Player:
         self.last_data = None
         self.player_state_machine = PlayerStateMachine()
 
-        self.socket.once('connect', self.socket_on_connect)
+        self.socket.once('connect', self.register_events)
         self.socket.on('disconnect', self.socket_on_disconnect)
 
     def refresh(self):
@@ -105,12 +105,12 @@ class Player:
         if not self.menu.state_machine.state.close_on:
             self.socket_on_push_state(self.last_data)
             return
+        self.register_events()
         self.socket.emit('getState', '', self.socket_on_push_state)
 
-    def socket_on_connect(self):
+    def register_events(self):
         self.socket.on('pushState', self.socket_on_push_state)
         self.socket.emit('getState', '', self.socket_on_push_state)
-        self.menu.socket_on_connect()
 
     def socket_on_disconnect(self):
         self.display.display_disconnect()
