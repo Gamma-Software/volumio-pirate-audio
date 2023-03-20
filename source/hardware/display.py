@@ -103,13 +103,13 @@ class DisplayHandler:
         """display connect"""
         self.display.set_backlight(True)
         self.display_stuff(self.screen.default_background,
-                           self.messages['DISPLAY']['WAIT'], 0, 'info')
+                           self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
 
     def display_disconnect(self):
         """display disconnect"""
         self.display.set_backlight(True)
         self.display_stuff(self.screen.default_background,
-                           self.messages['LOSTCONNECTION'], 0, 'info')
+                           self.messages['LOSTCONNECTION'], 0, 0, 'info')
 
     def display_menu(self, menu_list, cursor):
         """display menu"""
@@ -118,19 +118,19 @@ class DisplayHandler:
         if len(menu_list) == 0:
             menu_list = self.messages['DISPLAY']['EMPTY']
         self.display_stuff(self.screen.default_background,
-                           menu_list, cursor, "nav")
+                           menu_list, cursor, cursor, "nav")
 
     def display_shutdown(self):
         self.display.set_backlight(True)
         # TODO : add a shutdown message
         self.display_stuff(self.screen.default_background,
-                           ['executing:', 'shutdown'], 0, 'info')
+                           ['executing:', 'shutdown'], 0, 0, 'info')
 
     def display_reboot(self):
         self.display.set_backlight(True)
         # TODO : add a reboot message
         self.display_stuff(self.screen.default_background,
-                           ['executing:', 'reboot'], 0, 'info')
+                           ['executing:', 'reboot'], 0, 0, 'info')
 
     def refresh(self):
         pass
@@ -142,7 +142,7 @@ class DisplayHandler:
         self.display.display(image_to_display)
 
     #@check_perfo
-    def display_stuff(self, picture, text, marked, icons='nav'):
+    def display_stuff(self, picture, text, marked, start, icons='nav'):
         """create image and overlays"""
 
         def f_drawtext(x, y, text, fontstring, fillstring=(255, 255, 255)):
@@ -154,7 +154,7 @@ class DisplayHandler:
             draw3.text((x, y), text, font=fontstring, fill=fillstring)
 
         #@check_perfo
-        def f_textcontent(text, marked, listmax1):
+        def f_textcontent(text, start, listmax1):
             if text == []:
                 return
             """draw content"""
@@ -228,7 +228,7 @@ class DisplayHandler:
         else:
             self.screen.third_image = Image.open(picture).convert('RGBA')  # v.0.0.4
         draw3 = ImageDraw.Draw(self.screen.third_image, 'RGBA')
-        result = f_textcontent(text, marked, self.screen.max_list)
+        result = f_textcontent(text, start, self.screen.max_list)
         # draw symbols
         if icons == 'nav':
             f_drawsymbol(0, 50, u"\uf14a")  # Fontawesome symbol ok

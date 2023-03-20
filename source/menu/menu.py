@@ -12,12 +12,14 @@ class MenuStateMachine:
     def __init__(self, socket: SocketIO, update_menu_callback, close_menu_callback):
         self.state = states.MainMenu(MESSAGES_DATA, socket,
                                      self.on_push_browsesources,
-                                     self.on_push_browselibrary)
+                                     self.on_push_browselibrary,
+                                     self.on_get_queue)
         self.update_menu_callback = update_menu_callback
         self.close_menu_callback = close_menu_callback
         self.last_states = [states.MenuClosed(states.MainMenu, MESSAGES_DATA, socket,
                                               self.on_push_browsesources,
-                                              self.on_push_browselibrary)]
+                                              self.on_push_browselibrary,
+                                              self.on_get_queue)]
         self.socket = socket
 
     def on_push_browsesources(
@@ -35,13 +37,21 @@ class MenuStateMachine:
         self.update_choices(dict_resources)
         self.update_menu_callback()
 
+    def on_get_queue(self, dict_queue):
+        if not isinstance(self.state, states.PrevNextMenu):
+            return
+        self.update_choices(dict_queue)
+        self.update_menu_callback()
+
     def open_menu(self):
         self.state = states.MainMenu(MESSAGES_DATA, self.socket,
                                      self.on_push_browsesources,
-                                     self.on_push_browselibrary)
+                                     self.on_push_browselibrary,
+                                     self.on_get_queue)
         self.last_states = [states.MenuClosed(states.MainMenu, MESSAGES_DATA, self.socket,
                                               self.on_push_browsesources,
-                                              self.on_push_browselibrary)]
+                                              self.on_push_browselibrary,
+                                              self.on_get_queue)]
         self.state.run()
 
     def select(self, cursor):
@@ -78,6 +88,7 @@ class Menu:
     def socket_on_connect(self):
         self.socket.on('pushBrowseSources', self.state_machine.on_push_browsesources)
         self.socket.on('pushBrowseLibrary', self.state_machine.on_push_browselibrary)
+        self.socket.on('pushQueue', self.state_machine.on_get_queue)
 
     def cursor_up(self):
         self.cursor -= 1
@@ -121,11 +132,17 @@ class Menu:
     def update_menu(self):
         if not self.open:
             return
+
         if hasattr(self.state_machine.state, 'waiting_for_data') and\
            self.state_machine.state.waiting_for_data:
             self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
-        else:
+            return
+
+        if isinstance(self.state_machine.state, states.PrevNextMenu):
             self.display.display_menu(self.state_machine.state.choices, self.cursor)
+            return
+
+        self.display.display_menu(self.state_machine.state.choices, self.cursor)
 
     def button_on_click(self, button):
         if not self.open:

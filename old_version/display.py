@@ -665,7 +665,8 @@ def button_a(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
         if NAV_ARRAY_TYPE[NAV_DICT['MARKER']] == 'prevnext':  # v.0.0.4
             SOCKETIO.emit('getQueue', on_push_queue)  # refresh variables of queue
             VOLUMIO_DICT['MODE'] = 'prevnext'  # optimieren wg. global bzw. wird das überhaupt benötigt
-            display_stuff(IMAGE_DICT['BG_DEFAULT'], [''.join([str(VOLUMIO_DICT['POSITION'] + 1), '/', str(LEN_QUEUE)]), OBJ_TRANS['DISPLAY']['PREVNEXT'], TITLE_QUEUE[VOLUMIO_DICT['POSITION']]], 1, 0, 'seek')
+            if VOLUMIO_DICT['POSITION']:
+                display_stuff(IMAGE_DICT['BG_DEFAULT'], [''.join([str(VOLUMIO_DICT['POSITION'] + 1), '/', str(LEN_QUEUE)]), OBJ_TRANS['DISPLAY']['PREVNEXT'], TITLE_QUEUE[VOLUMIO_DICT['POSITION']]], 1, 0, 'seek')
             return
         # only get called if no return before was executed
         #else:  # browsesource

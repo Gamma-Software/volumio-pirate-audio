@@ -110,8 +110,6 @@ class Player:
     def socket_on_connect(self):
         self.socket.on('pushState', self.socket_on_push_state)
         self.socket.emit('getState', '', self.socket_on_push_state)
-        self.socket.on('pushQueue', self.socket_on_push_queue)
-        self.socket.emit('getQueue', self.socket_on_push_queue)
         self.menu.socket_on_connect()
 
     def socket_on_disconnect(self):

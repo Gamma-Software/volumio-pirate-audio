@@ -37,13 +37,15 @@ class State(ABC):
 
 
 class StateImp(State):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
+    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary,
+                 on_push_queue):
         self.messages = messages
         self.waiting_for_data = False
         self.choices = []
         self.socket = socket
         self.on_push_browsesources = on_push_browsesources
         self.on_push_browselibrary = on_push_browselibrary
+        self.on_push_queue = on_push_queue
 
     def run(self):
         print_debug("Run -> Menu: " + self.__class__.__name__)
@@ -59,8 +61,10 @@ class StateImp(State):
 
 
 class MenuClosed(StateImp):
-    def __init__(self, close_on, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, close_on, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
         self.close_on: State = close_on
 
     def run(self):
@@ -78,8 +82,10 @@ class MenuClosed(StateImp):
 
 
 class MainMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
         self.choices = [self.messages['DISPLAY']['MUSICSELECTION'],
                         self.messages['DISPLAY']['SEEK'],
                         self.messages['DISPLAY']['PREVNEXT'],
@@ -97,20 +103,28 @@ class MainMenu(StateImp):
 
         if choice == self.messages['DISPLAY']['MUSICSELECTION']:
             return BrowseSourceMenu(MESSAGES_DATA, self.socket,
-                                    self.on_push_browsesources, self.on_push_browselibrary)
+                                    self.on_push_browsesources,
+                                    self.on_push_browselibrary, self.on_push_queue)
         if choice == self.choices[1]:  # seek
             return SeekMenu(MESSAGES_DATA, self.socket,
-                            self.on_push_browsesources, self.on_push_browselibrary)
-
+                            self.on_push_browsesources,
+                            self.on_push_browselibrary, self.on_push_queue)
+        if choice == self.choices[2]:  # prevnext
+            return PrevNextMenu(MESSAGES_DATA, self.socket,
+                                self.on_push_browsesources,
+                                self.on_push_browselibrary, self.on_push_queue)
         if choice == self.choices[3]:  # sleeptimer
             return SleepTimerMenu(MESSAGES_DATA, self.socket,
-                                  self.on_push_browsesources, self.on_push_browselibrary)
+                                  self.on_push_browsesources,
+                                  self.on_push_browselibrary, self.on_push_queue)
         if choice == self.choices[4]:  # shutdown
             return ShutdownMenu(MESSAGES_DATA, self.socket,
-                                self.on_push_browsesources, self.on_push_browselibrary)
+                                self.on_push_browsesources,
+                                self.on_push_browselibrary, self.on_push_queue)
         if choice == self.choices[5]:  # reboot
             return RebootMenu(MESSAGES_DATA, self.socket,
-                              self.on_push_browsesources, self.on_push_browselibrary)
+                              self.on_push_browsesources,
+                              self.on_push_browselibrary, self.on_push_queue)
 
     def select(self, input):
         pass
@@ -120,8 +134,10 @@ class MainMenu(StateImp):
 
 
 class BrowseLibraryMenu(StateImp):
-    def __init__(self, selected_uri, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, selected_uri, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
         self.choices = []  # The choices are set in the socket function
         self.waiting_for_data = True
         self.services = []
@@ -156,7 +172,7 @@ class BrowseLibraryMenu(StateImp):
                     uri = uri.replace('mnt/', 'music-library/')
                     return BrowseLibraryMenu(uri, MESSAGES_DATA, self.socket,
                                              self.on_push_browsesources,
-                                             self.on_push_browselibrary)
+                                             self.on_push_browselibrary, self.on_push_queue)
             if self.types[input] in ['song', 'webradio', 'mywebradio']:
                 service = self.services[input]
                 name = self.choices[input]
@@ -176,10 +192,13 @@ class BrowseLibraryMenu(StateImp):
                     type, "title": name,
                     "uri": uri})
                 return MenuClosed(BrowseLibraryMenu, MESSAGES_DATA, self.socket,
-                                  self.on_push_browsesources, self.on_push_browselibrary)
+                                  self.on_push_browsesources,
+                                  self.on_push_browselibrary,
+                                  self.on_push_queue)
         return BrowseLibraryMenu(uri, MESSAGES_DATA, self.socket,
                                  self.on_push_browsesources,
-                                 self.on_push_browselibrary)
+                                 self.on_push_browselibrary,
+                                 self.on_push_queue)
 
     def up_down(self, input):
         pass
@@ -189,8 +208,10 @@ class BrowseLibraryMenu(StateImp):
 
 
 class BrowseSourceMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
         self.choices = []  # The choices are set in the socket function
         self.uri = []
         self.waiting_for_data = True
@@ -207,7 +228,9 @@ class BrowseSourceMenu(StateImp):
 
     def next(self, input) -> State:
         return BrowseLibraryMenu(self.uri[input], MESSAGES_DATA, self.socket,
-                                 self.on_push_browsesources, self.on_push_browselibrary)
+                                 self.on_push_browsesources,
+                                 self.on_push_browselibrary,
+                                 self.on_push_queue)
 
     def up_down(self, input):
         pass
@@ -217,8 +240,10 @@ class BrowseSourceMenu(StateImp):
 
 
 class RebootMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
 
     def run(self):
         super().run()
@@ -226,7 +251,9 @@ class RebootMenu(StateImp):
 
     def next(self, input) -> State:
         return MenuClosed(RebootMenu, MESSAGES_DATA, self.socket,
-                          self.on_push_browsesources, self.on_push_browselibrary)
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
 
     def up_down(self, input):
         pass
@@ -236,8 +263,10 @@ class RebootMenu(StateImp):
 
 
 class SeekMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
 
     def run(self):
         super().run()
@@ -252,16 +281,54 @@ class SeekMenu(StateImp):
         pass
 
 
+class PrevNextMenu(StateImp):
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
+        self.waiting_for_data = True
+        self.choices = []
+
+    def update_choices(self, data):
+        self.choices = [d['name'] for d in data]
+        self.waiting_for_data = False
+
+    def run(self):
+        super().run()
+        self.waiting_for_data = True
+        self.socket.emit('getQueue', self.on_push_queue)
+
+    def next(self, input) -> State:
+        """processes prev/next commands"""
+        self.socket.emit('stop')
+        self.socket.emit('play', {"value": self.choices[input]})
+        return MenuClosed(PrevNextMenu, MESSAGES_DATA, self.socket,
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
+
+    def up_down(self, input):
+        pass
+
+    def select(self, input):
+        pass
+
+
+
 class SleepTimerMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
 
     def run(self):
         super().run()
 
     def next(self, input) -> State:
         return MenuClosed(SleepTimerMenu, MESSAGES_DATA, self.socket,
-                          self.on_push_browsesources, self.on_push_browselibrary)
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
 
     def up_down(self, input):
         pass
@@ -271,15 +338,19 @@ class SleepTimerMenu(StateImp):
 
 
 class AlarmMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
 
     def run(self):
         super().run()
 
     def next(self, input) -> State:
         return MenuClosed(AlarmMenu, MESSAGES_DATA, self.socket,
-                          self.on_push_browsesources, self.on_push_browselibrary)
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
 
     def up_down(self, input):
         pass
@@ -289,8 +360,10 @@ class AlarmMenu(StateImp):
 
 
 class ShutdownMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources, on_push_browselibrary):
-        super().__init__(messages, socket, on_push_browsesources, on_push_browselibrary)
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
 
     def run(self):
         super().run()
@@ -298,7 +371,9 @@ class ShutdownMenu(StateImp):
 
     def next(self, input) -> State:
         return MenuClosed(ShutdownMenu, MESSAGES_DATA, self.socket,
-                          self.on_push_browsesources, self.on_push_browselibrary)
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
 
     def up_down(self, input):
         pass
