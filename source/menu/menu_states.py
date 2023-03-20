@@ -244,10 +244,10 @@ class RebootMenu(StateImp):
                  on_push_browselibrary, on_push_queue):
         super().__init__(messages, socket, on_push_browsesources,
                          on_push_browselibrary, on_push_queue)
+        self.choices = [self.messages['DISPLAY']['REBOOT']]
 
     def run(self):
         super().run()
-        next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
         return MenuClosed(RebootMenu, MESSAGES_DATA, self.socket,
@@ -394,10 +394,10 @@ class ShutdownMenu(StateImp):
                  on_push_browselibrary, on_push_queue):
         super().__init__(messages, socket, on_push_browsesources,
                          on_push_browselibrary, on_push_queue)
+        self.choices = [self.messages['DISPLAY']['SHUTDOWN']]
 
     def run(self):
         super().run()
-        next(self, 0)  # Close the menu right away
 
     def next(self, input) -> State:
         return MenuClosed(ShutdownMenu, MESSAGES_DATA, self.socket,
