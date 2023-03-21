@@ -92,21 +92,15 @@ class Player:
 
         # If the menu is open, we are in the menu
         else:
-            next_state = self.menu.button_on_click(button)
+            self.menu.button_on_click(button)
 
-            if not isinstance(next_state.state, ms.MenuClosed):
-                return
-
-            # Handle actions when the menu is closed
-            # depending on the reason
-            self.on_menu_close()
-
-    def on_menu_close(self):
-        if not self.menu.state_machine.state.close_on:
-            self.socket_on_push_state(self.last_data)
-            return
-        self.register_events()
-        self.socket.emit('getState', '', self.socket_on_push_state)
+            # After the button is pressed, we check if the menu is still open
+            if not self.menu.open:
+                if not self.menu.current_state.close_on:
+                    self.socket_on_push_state(self.last_data)
+                    return
+                self.register_events()  # Get back the callbacks
+                self.socket.emit('getState', '', self.socket_on_push_state)
 
     def register_events(self):
         self.socket.on('pushState', self.socket_on_push_state)

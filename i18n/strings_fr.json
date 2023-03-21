@@ -9,6 +9,8 @@
     },
   "DISPLAY": {
     "MUSICSELECTION": "Selection",
+    "NO_QUEUE": "Aucune file d'attente",
+    "CANCEL": "Annuler",
     "SHUTDOWN": "Eteindre ?",
     "REBOOT": "Redemarrer le Pi ?",
     "LOSTCONNECTION": "Connexion perdue",
