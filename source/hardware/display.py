@@ -109,7 +109,7 @@ class DisplayHandler:
         """display disconnect"""
         self.display.set_backlight(True)
         self.display_stuff(self.screen.default_background,
-                           self.messages['LOSTCONNECTION'], 0, 0, 'info')
+                           self.messages["DISPLAY"]['LOSTCONNECTION'], 0, 0, 'info')
 
     def display_menu(self, menu_list, cursor, icon='nav'):
         """display menu"""

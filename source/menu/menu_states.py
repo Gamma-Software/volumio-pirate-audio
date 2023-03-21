@@ -61,11 +61,11 @@ class StateImp(State):
 
 
 class MenuClosed(StateImp):
-    def __init__(self, close_on, messages, socket, on_push_browsesources,
+    def __init__(self, close_on: State, messages, socket, on_push_browsesources,
                  on_push_browselibrary, on_push_queue):
         super().__init__(messages, socket, on_push_browsesources,
                          on_push_browselibrary, on_push_queue)
-        self.close_on: State = close_on
+        self.close_on: str = close_on.__name__
 
     def run(self):
         super().run()
@@ -239,29 +239,6 @@ class BrowseSourceMenu(StateImp):
         pass
 
 
-class RebootMenu(StateImp):
-    def __init__(self, messages, socket, on_push_browsesources,
-                 on_push_browselibrary, on_push_queue):
-        super().__init__(messages, socket, on_push_browsesources,
-                         on_push_browselibrary, on_push_queue)
-        self.choices = [self.messages['DISPLAY']['REBOOT']]
-
-    def run(self):
-        super().run()
-
-    def next(self, input) -> State:
-        return MenuClosed(RebootMenu, MESSAGES_DATA, self.socket,
-                          self.on_push_browsesources,
-                          self.on_push_browselibrary,
-                          self.on_push_queue)
-
-    def up_down(self, input):
-        pass
-
-    def select(self, input):
-        pass
-
-
 class SeekMenu(StateImp):
     def __init__(self, messages, socket, on_push_browsesources,
                  on_push_browselibrary, on_push_queue):
@@ -344,7 +321,6 @@ class PrevNextMenu(StateImp):
         pass
 
 
-
 class SleepTimerMenu(StateImp):
     def __init__(self, messages, socket, on_push_browsesources,
                  on_push_browselibrary, on_push_queue):
@@ -389,18 +365,44 @@ class AlarmMenu(StateImp):
         pass
 
 
-class ShutdownMenu(StateImp):
+class RebootMenu(StateImp):
     def __init__(self, messages, socket, on_push_browsesources,
                  on_push_browselibrary, on_push_queue):
         super().__init__(messages, socket, on_push_browsesources,
                          on_push_browselibrary, on_push_queue)
-        self.choices = [self.messages['DISPLAY']['SHUTDOWN']]
+        self.choices = [self.messages['DISPLAY']['REBOOT'], "Cancel"]
 
     def run(self):
         super().run()
 
     def next(self, input) -> State:
-        return MenuClosed(ShutdownMenu, MESSAGES_DATA, self.socket,
+        # Trick: if the user cancels (input == 1), the menu is closed without rebooting
+        return MenuClosed(MainMenu if input == 1 else RebootMenu,
+                          MESSAGES_DATA, self.socket,
+                          self.on_push_browsesources,
+                          self.on_push_browselibrary,
+                          self.on_push_queue)
+
+    def up_down(self, input):
+        pass
+
+    def select(self, input):
+        pass
+
+
+class ShutdownMenu(StateImp):
+    def __init__(self, messages, socket, on_push_browsesources,
+                 on_push_browselibrary, on_push_queue):
+        super().__init__(messages, socket, on_push_browsesources,
+                         on_push_browselibrary, on_push_queue)
+        self.choices = [self.messages['DISPLAY']['SHUTDOWN'], "Cancel"]
+
+    def run(self):
+        super().run()
+
+    def next(self, input) -> State:
+        # Trick: if the user cancels (input == 1), the menu is closed without rebooting
+        return MenuClosed(MainMenu if input == 1 else ShutdownMenu, MESSAGES_DATA, self.socket,
                           self.on_push_browsesources,
                           self.on_push_browselibrary,
                           self.on_push_queue)

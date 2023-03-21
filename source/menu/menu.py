@@ -120,12 +120,15 @@ class Menu:
         if not isinstance(self.state_machine.state, states.MenuClosed):
             return
 
-        if isinstance(self.state_machine.state.close_on, states.SleepTimerMenu):
+        # Post closing actions
+        if self.state_machine.state.close_on == "SleepTimerMenu":
             self.start_sleep_timer()
-        if isinstance(self.state_machine.state.close_on, states.ShutdownMenu):
+        if self.state_machine.state.close_on == "ShutdownMenu":
             self.shutdown()
-        if isinstance(self.state_machine.state.close_on, states.RebootMenu):
+        if self.state_machine.state.close_on == "RebootMenu":
             self.reboot()
+
+        # Else, close without actions
 
     def shutdown(self):
         self.socket.emit('shutdown')
