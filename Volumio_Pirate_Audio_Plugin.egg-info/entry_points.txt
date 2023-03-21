@@ -1,0 +1,3 @@
+[console_scripts]
+pirate_audio_plugin = source.main:main
+

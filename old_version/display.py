@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
-SIMULATOR = True
+import sys
 
+# If you want to run this on a PC, set SIMULATOR to True
+SIMULATOR = sys.platform == 'win32'
+
+from pathlib import Path
 import os
 import os.path
 from io import BytesIO
@@ -39,9 +43,9 @@ else:
 # logging.basicConfig()
 
 # get the path of the script
-SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_ROOT_PATH = Path(__file__).parent.parent.absolute()
 # set script path as current directory
-os.chdir(SCRIPT_PATH)
+os.chdir(SCRIPT_ROOT_PATH)
 
 
 # Create ST7789 LCD Display class.
@@ -60,20 +64,20 @@ DISP = ST7789.ST7789(
 
 
 # read json file (plugin values)
-config_file = '/data/configuration/system_hardware/pirateaudio/config.json' if not SIMULATOR else 'config.json'
+config_file = '/data/configuration/system_hardware/pirateaudio/config.json' if not SIMULATOR else SCRIPT_ROOT_PATH / 'config.json'
 with open(config_file, 'r') as myfile:
     DATA = myfile.read()
 OBJ = json.loads(DATA)
 
 # read json file (volumio language)
-lang_file = '/data/configuration/miscellanea/appearance/config.json' if not SIMULATOR else 'misc_config.json'
+lang_file = '/data/configuration/miscellanea/appearance/config.json' if not SIMULATOR else  SCRIPT_ROOT_PATH / 'misc_config.json'
 with open(lang_file, 'r') as mylangfile:
     DATA_LANG = mylangfile.read()
 OBJ_LANG = json.loads(DATA_LANG)
 LANGCODE = OBJ_LANG['language_code']['value']
-LANGPATH = ''.join([('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_', LANGCODE, '.json'])  # v0.0.7
+LANGPATH = ''.join([('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else str(SCRIPT_ROOT_PATH) + "/") + 'i18n/strings_', LANGCODE, '.json'])  # v0.0.7
 if os.path.exists(LANGPATH) is False:  # fallback to en as default language
-    LANGPATH = ('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else '') + 'i18n/strings_en.json'
+    LANGPATH = ('/data/plugins/system_hardware/pirateaudio/' if not SIMULATOR else str(SCRIPT_ROOT_PATH) + "/") + 'i18n/strings_en.json'
 
 # read json file (language file for translation)
 with open(LANGPATH, 'r') as mytransfile:
@@ -83,10 +87,10 @@ OBJ_TRANS = json.loads(DATA_TRANS)
 TITLE_QUEUE, LEN_QUEUE = [], 0  # v.0.0.4
 NAV_ARRAY_NAME, NAV_ARRAY_URI, NAV_ARRAY_TYPE, NAV_ARRAY_SERVICE = [], [], [], []
 FONT_DICT = {
-    "FONT_S": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 20),
-    "FONT_M": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 24),
-    "FONT_L": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/Roboto-Medium.ttf']), 30),
-    "FONT_FAS": ImageFont.truetype(''.join([SCRIPT_PATH, '/fonts/FontAwesome5-Free-Solid.otf']), 28)
+    "FONT_S": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 20),
+    "FONT_M": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 24),
+    "FONT_L": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/Roboto-Medium.ttf']), 30),
+    "FONT_FAS": ImageFont.truetype(''.join([str(SCRIPT_ROOT_PATH), '/fonts/FontAwesome5-Free-Solid.otf']), 28)
 }
 IMAGE_DICT = {
     "WIDTH": 240,
@@ -123,6 +127,10 @@ OVERLAY_DICT = {
     "BAR_COL": (255, 255, 255),
     "DARK": False
 }
+
+wait_sleep_screen = 60
+last_time_button_pushed = time()
+screen_in_sleep = False
 
 BUTTONS = [5, 6, 16, OBJ['gpio_ybutton']['value']]
 # LABELS = ['A', 'B', 'X', 'Y']
@@ -219,7 +227,7 @@ def reset_variable(varmode):
     del NAV_ARRAY_TYPE[:]
     del NAV_ARRAY_SERVICE[:]
     NAV_DICT['MARKER'], NAV_DICT['LISTSTART'] = 0, 0
-    IMAGE_DICT['IMG_CHECK'], VOLUMIO_DICT['ALBUMART'], VOLUMIO_DICT['STATE_LAST'] = '', '', None  # reset albumart so display gets refreshed
+    IMAGE_DICT['IMG_CHECK'], VOLUMIO_DICT['STATE_LAST'] = '', None  # reset albumart so display gets refreshed
     print("reset_variable--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
@@ -289,9 +297,12 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
 
     def f_xy(text, font):
         """helper for width and height of text"""
-        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
-        len1 = bbox[2] - bbox[0]
-        hei1 = bbox[3] - bbox[1]
+        if SIMULATOR:
+            bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+            len1 = bbox[2] - bbox[0]
+            hei1 = bbox[3] - bbox[1]
+        else:
+            len1, hei1 = draw3.textsize(text, font)
 
         x = (IMAGE_DICT['WIDTH'] - len1)//2
         Y = (IMAGE_DICT['HEIGHT'] - hei1)//2
@@ -327,6 +338,7 @@ def display_stuff(picture, text, marked, start, icons='nav'):  # v.0.0.4 test fo
     f_page(marked, NAV_DICT['LISTMAX'], result)
     sendtodisplay(IMAGE_DICT['IMG3'])
     print("displaystuff--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
+    return IMAGE_DICT['IMG3']
 
 
 # position in code is important, so display_stuff works v.0.0.4
@@ -342,13 +354,17 @@ def seeking(direction):
     if direction == '+':
         if int(float((VOLUMIO_DICT['SEEK'] + step)/1000)) < VOLUMIO_DICT['DURATION']:
             VOLUMIO_DICT['SEEK'] += step
-            SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
             display_stuff(IMAGE_DICT['BG_DEFAULT'], [OBJ_TRANS['DISPLAY']['SEEK'], ''.join([strftime("%M:%S", gmtime(int(float(VOLUMIO_DICT['SEEK']/1000)))), ' / ', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION']))])], 0, 0, 'seek')
     else:
         if int(float((VOLUMIO_DICT['SEEK'] - step)/1000)) > 0:
             VOLUMIO_DICT['SEEK'] -= step
-            SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
             display_stuff(IMAGE_DICT['BG_DEFAULT'], [OBJ_TRANS['DISPLAY']['SEEK'], ''.join([strftime("%M:%S", gmtime(int(float(VOLUMIO_DICT['SEEK']/1000)))), ' / ', strftime("%M:%S", gmtime(VOLUMIO_DICT['DURATION']))])], 0, 0, 'seek')
+
+    if int(float(VOLUMIO_DICT['SEEK']/1000)) > VOLUMIO_DICT['DURATION']:
+        VOLUMIO_DICT['SEEK'] = VOLUMIO_DICT['DURATION'] * 1000
+    if int(float(VOLUMIO_DICT['SEEK']/1000)) < 0:
+        VOLUMIO_DICT['SEEK'] = 0
+    SOCKETIO.emit('seek', int(float(VOLUMIO_DICT['SEEK']/1000)))
     print("seeking--- %s seconds ---" % (time() - start_time))  # debug, time of code execution
 
 
@@ -386,7 +402,9 @@ def on_push_queue(*args):
 def on_push_state(*args):
     """processes websocket informations of push state"""
     start_time = time()  # debug, time of code execution
+
     global IMAGE_DICT, OVERLAY_DICT, VOLUMIO_DICT
+
     # WS_CONNECTED = True
     # test to get rid of unneeded, empty screen refreshs
     if not args[0]['title'] and not args[0]['artist'] and not args[0]['album'] and LEN_QUEUE > 0:
@@ -403,9 +421,12 @@ def on_push_state(*args):
 
     def f_textsize(text, fontsize):
         """"helper textsize"""
-        font = FONT_DICT['FONT_M']
-        bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
-        w1 = bbox[2] - bbox[0]
+        if SIMULATOR:
+            font = FONT_DICT['FONT_M']
+            bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
+            w1 = bbox[2] - bbox[0]
+        else:
+            w1, _ = draw.textsize(text, fontsize)
         return w1
 
     def f_drawtext(x, y, text, fontstring, fillstring):
@@ -545,6 +566,16 @@ SOCKETIO.on('disconnect', on_disconnect)
 
 
 def handle_button(pin):
+    global last_time_button_pushed
+    global screen_in_sleep
+    last_time_button_pushed = time()
+
+    if screen_in_sleep:
+        screen_in_sleep = False
+        # wake up screen and don't take the button intent
+        DISP.set_backlight(True)
+        return
+
     if pin == 5:
         button_a(VOLUMIO_DICT['MODE'], VOLUMIO_DICT['STATUS'])
     if pin == 6:
@@ -634,7 +665,8 @@ def button_a(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
         if NAV_ARRAY_TYPE[NAV_DICT['MARKER']] == 'prevnext':  # v.0.0.4
             SOCKETIO.emit('getQueue', on_push_queue)  # refresh variables of queue
             VOLUMIO_DICT['MODE'] = 'prevnext'  # optimieren wg. global bzw. wird das überhaupt benötigt
-            display_stuff(IMAGE_DICT['BG_DEFAULT'], [''.join([str(VOLUMIO_DICT['POSITION'] + 1), '/', str(LEN_QUEUE)]), OBJ_TRANS['DISPLAY']['PREVNEXT'], TITLE_QUEUE[VOLUMIO_DICT['POSITION']]], 1, 0, 'seek')
+            if VOLUMIO_DICT['POSITION']:
+                display_stuff(IMAGE_DICT['BG_DEFAULT'], [''.join([str(VOLUMIO_DICT['POSITION'] + 1), '/', str(LEN_QUEUE)]), OBJ_TRANS['DISPLAY']['PREVNEXT'], TITLE_QUEUE[VOLUMIO_DICT['POSITION']]], 1, 0, 'seek')
             return
         # only get called if no return before was executed
         #else:  # browsesource
@@ -654,7 +686,7 @@ def button_b(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
             sleep(0.5)
     elif mode in ['navigation', 'menu', 'seek', 'prevnext']:
         reset_variable('player')
-        IMAGE_DICT['LASTREFRESH'] = time()-10  # to get display refresh independ from refresh thread
+        IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
         SOCKETIO.emit('getState')
 
 
@@ -672,6 +704,7 @@ def button_x(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
                     NAV_DICT['LISTSTART'] = int(NAV_DICT['LISTSTART'] + (floor(NAV_DICT['LISTRESULT']/NAV_DICT['LISTMAX'])*NAV_DICT['LISTMAX']))
             NAV_DICT['LISTSTART'] = int(floor(NAV_DICT['MARKER']/NAV_DICT['LISTMAX'])*NAV_DICT['LISTMAX'])  # definiert das blaettern zur naechsten Seite
             display_stuff(IMAGE_DICT['BG_DEFAULT'], NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
+            print(NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
             sleep(0.1)  # v.0.0.7
     elif mode == 'seek':  # v.0.0.4
         seeking('+')
@@ -697,6 +730,7 @@ def button_y(mode, status):  # optimieren, VOLUMIO_DICT['MODE'] durch mode (loka
                     NAV_DICT['MARKER'] = 0
                     NAV_DICT['LISTSTART'] = 0
                 display_stuff(IMAGE_DICT['BG_DEFAULT'], NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
+                print(NAV_ARRAY_NAME, NAV_DICT['MARKER'], NAV_DICT['LISTSTART'])
                 sleep(0.1)  # v.0.0.7
 
 
@@ -732,12 +766,25 @@ def display_refresh():  # v0.0.7
     if VOLUMIO_DICT['STATE_LAST'] and VOLUMIO_DICT['SERVICE'] not in ['webradio'] and VOLUMIO_DICT['STATUS'] not in ['stop', 'pause'] and VOLUMIO_DICT['MODE'] == 'player' and time() >= IMAGE_DICT['LASTREFRESH'] + 4.5: # v0.0.7 hint pylint
         SOCKETIO.emit('getState')
 
+    global screen_in_sleep, last_time_button_pushed
+
+    if time() >= last_time_button_pushed + wait_sleep_screen and not screen_in_sleep:
+        if VOLUMIO_DICT['MODE'] == 'player':
+            screen_in_sleep = True
+            DISP.set_backlight(False)
+        else:
+            reset_variable('player') # Go back to player mode if no button is pushed for 10 seconds
+            IMAGE_DICT['LASTREFRESH'] = time()-5  # to get display refresh independ from refresh thread
+            SOCKETIO.emit('getState')
+            last_time_button_pushed = time()
+
+
 
 def display_helper():  # v0.0.7
     """helper function as thread"""
     while True:
         display_refresh()
-        sleep(1)
+        sleep(0.5 if SIMULATOR else 5)
 
 
 THREAD1 = Thread(target=display_helper)  # v0.0.7

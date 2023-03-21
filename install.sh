@@ -16,8 +16,12 @@ systemctl enable pirateaudio.service
 # Install the required packages via apt-get, install new python 3.x depencies
 echo "Installing new python 3.x and pip3 dependencies for pirateaudio plugin"
 sudo apt-get update
-sudo apt-get install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy
-sudo pip3 install st7789 socketIO-client
+sudo apt-get install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy virtualenv
+echo "Create virtual environment for pirateaudio plugin"
+supo virtualenv -p python3 /data/plugins/system_hardware/pirateaudio/.venv
+echo "Install pirateaudio plugin inside virtual environment"
+source /data/plugins/system_hardware/pirateaudio/.venv/bin/activate
+sudo pip3 install .
 
 # undo changes to userconfig for pirate audio hat in case of updating plugin
 sudo sed -i '/### End of parameters for pirateaudio plugin ###/d' /boot/userconfig.txt

@@ -1,4 +1,4 @@
-
+from pathlib import Path
 import sys
 import keyboard
 from threading import Thread
@@ -23,7 +23,8 @@ def simulate(background_task):
 
     # Main game loop
     running = True
-    with open('simulator/key_map.json', 'r') as myfile:
+    SCRIPT_ROOT_PATH = Path(__file__).parent.parent.absolute()
+    with open(SCRIPT_ROOT_PATH / 'simulator/key_map.json', 'r') as myfile:
         DATA = myfile.read()
         KEYBOARD_MAP = json.loads(DATA)
     while running:

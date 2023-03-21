@@ -9,6 +9,8 @@
   },
   "DISPLAY": {
     "MUSICSELECTION": "Music selection",
+    "NO_QUEUE": "No queue",
+    "CANCEL": "Annuler",
     "SHUTDOWN": "Shutdown?",
     "REBOOT": "Reboot Pi?",
     "LOSTCONNECTION": "Lost connection",

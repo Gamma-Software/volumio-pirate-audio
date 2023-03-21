@@ -1,0 +1,13 @@
+Metadata-Version: 1.2
+Name: Volumio-Pirate-Audio-Plugin
+Version: 2.0.0
+Summary: This is the Volumio plugin for the Pirate Audio HAT for Raspberry Pi.
+Home-page: UNKNOWN
+Author: AX-LED & Valentin Rudloff
+Author-email: valentin.rudloff.perso@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
