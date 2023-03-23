@@ -16,7 +16,7 @@ class ButtonHandler:
 
         # Setup GPIO pins
         try:
-            for pin in self.button_mapping:
+            for pin in self.button_mapping.values():
                 GPIO.setup(pin, GPIO.IN, GPIO.PUD_UP)
                 GPIO.add_event_detect(pin, GPIO.FALLING, self.handle_button, bouncetime=250)
                 time.sleep(0.1)  # Wait a bit

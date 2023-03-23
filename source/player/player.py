@@ -2,14 +2,14 @@ import sys
 import time
 import typing
 import requests
+from copy import deepcopy
 from io import BytesIO
 
 from source.debug import print_debug, check_perfo
 from source.menu.menu import Menu
 from source.hardware.display import DisplayHandler
 from source.hardware.buttons import ButtonHandler
-from .state_machine import PlayerStateMachine
-import source.menu.menu_states as ms
+from .state_machine import PlayerStateMachine, STATE_PLAY
 
 from source import SIMULATOR
 
@@ -49,15 +49,26 @@ class Player:
     def refresh(self):
         """helper function as thread"""
         self.socket.emit('getState', '', self.socket_on_push_state)
-        return
 
     def start(self):
         print("Starting player main loop")
 
         self.display.display_connect()
-        if SIMULATOR:
-            print("... and the simulator")
-            simulator.start(self.socket)
+        try:
+            if SIMULATOR:
+                print("... and the simulator")
+                simulator.start(self.socket)
+            else:
+                while True:
+                    if self.player_state_machine.status == STATE_PLAY:
+                        current_time = time.time()
+                        self.refresh()
+                        # Wait for the next refresh to be at least 1 second after the last one
+                        time.sleep(max(0, 1 - (time.time() - current_time)))
+                    else:
+                        time.sleep(5)
+        except KeyboardInterrupt:
+            self.clean()
 
     def button_on_click(self, button):
         #print("Button pressed: " + str(button))
@@ -68,16 +79,18 @@ class Player:
                 self.socket.emit('volume', '-')
                 time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
-                self.last_data["volume"] = self.player_state_machine.current_volume
-                self.socket_on_push_state(self.last_data)
+                data_to_send = deepcopy(self.last_data)
+                data_to_send["volume"] = self.player_state_machine.current_volume
+                self.socket_on_push_state(data_to_send)
 
             if button == 'y':
                 self.player_state_machine.volume_up()
                 self.socket.emit('volume', '+')
                 time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
-                self.last_data["volume"] = self.player_state_machine.current_volume
-                self.socket_on_push_state(self.last_data)
+                data_to_send = deepcopy(self.last_data)
+                data_to_send["volume"] = self.player_state_machine.current_volume
+                self.socket_on_push_state(data_to_send)
 
             if button == 'x':
                 self.menu.show_menu()
@@ -87,8 +100,9 @@ class Player:
                 self.socket.emit(new_state)
                 time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
-                self.last_data["status"] = new_state
-                self.socket_on_push_state(self.last_data)
+                data_to_send = deepcopy(self.last_data)
+                data_to_send["status"] = new_state
+                self.socket_on_push_state(data_to_send)
 
         # If the menu is open, we are in the menu
         else:
@@ -112,7 +126,9 @@ class Player:
     @check_perfo
     def socket_on_push_state(self,
                              data: typing.Tuple[typing.Dict[str, typing.Any]]):
-        print_debug(f"State received {data}")
+        if data == self.last_data:
+            return
+
         self.last_data = data
 
         if 'album' in data.keys():
@@ -138,12 +154,11 @@ class Player:
                 albumart_url = data['albumart'].encode('ascii', 'ignore').decode('utf-8')
 
             # Download album art only if it changed
-            if self.player_state_machine.music_data.album_uri != albumart_url:
-                self.last_response = requests.get(albumart_url)
-                self.player_state_machine.music_data.album_uri = albumart_url
-
-            self.player_state_machine.music_data.album_art = self.display.f_background(
-                BytesIO(self.last_response.content))
+            # TODO integrate this in the state machine
+            if self.player_state_machine.last_music_data.album_art != \
+               self.player_state_machine.music_data.album_art:
+                self.player_state_machine.music_data.album_url = albumart_url
+                self.display.f_background(BytesIO(requests.get(albumart_url).content))
 
             self.display.f_displayoverlay(self.player_state_machine.status,
                                           self.player_state_machine.current_volume,
@@ -155,6 +170,10 @@ class Player:
             #if self.display.screen.image_check != self.display.screen.current_image:
             self.display.screen.image_check = self.display.screen.current_image
             self.display.sendtodisplay(self.display.screen.current_image)
+
+            # TODO integrate this in the state machine
+            self.player_state_machine.last_music_data = deepcopy(
+                self.player_state_machine.music_data)
 
     def socket_on_push_queue(self, queue):
         self.player_state_machine.queue = queue
