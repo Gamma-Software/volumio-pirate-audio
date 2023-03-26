@@ -6,12 +6,12 @@ STATE_STOP = "stop"
 
 
 class Music:
-    def __init__(self, title, artist, album_name, album_art, album_uri, duration):
+    def __init__(self, title, artist, album_name, album_art, album_url, duration):
         self.title = title
         self.artist = artist
         self.album_name = album_name
         self.album_art = album_art
-        self.album_uri = album_uri
+        self.album_url = album_url
         self.duration = duration
 
 
@@ -26,6 +26,8 @@ class PlayerStateMachine:
         self.current_position = 0  # by default the position is 0
         self.elapsed_time = 0
         self.music_data = Music(None, None, None, None, None, None)  # TODO
+        self.last_music_data = Music(None, None, None, None, None, None)  # TODO
+        self.music_changed = False
         self.queue = []
 
     def parse_data(self, data):
@@ -56,8 +58,7 @@ class PlayerStateMachine:
         if 'albumart' in data.keys():
             self.music_data.album_art = data['albumart']
         if 'uri' in data.keys():
-            self.music_data.album_uri = data['uri']
-
+            self.music_data.album_url = data['uri']
 
     def play_pause(self):
         if self.status == STATE_PLAY and\
@@ -76,10 +77,8 @@ class PlayerStateMachine:
         self.current_volume += 5
         if self.current_volume > 100:
             self.current_volume = 100
-        print("Volume: " + str(self.current_volume))
 
     def volume_down(self):
         self.current_volume -= 5
         if self.current_volume < 0:
             self.current_volume = 0
-        print("Volume: " + str(self.current_volume))

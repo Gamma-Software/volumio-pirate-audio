@@ -75,7 +75,6 @@ class MenuClosed(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
         print(f"Close the menu on {self.close_on}")
 
     def next(self) -> State:
@@ -161,7 +160,7 @@ class BrowseLibraryMenu(StateImp):
     def run(self):
         super().run()
         self.socket.emit('browseLibrary', {'uri': self.selected_uri})
-        self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         uri = self.uri[self.cursor]
@@ -215,7 +214,7 @@ class BrowseSourceMenu(StateImp):
     def run(self):
         super().run()
         self.socket.emit('getBrowseSources', '', self.update_data)
-        self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         return BrowseLibraryMenu(self.uri[self.cursor], MESSAGES_DATA, self.socket, self.display)
@@ -305,7 +304,7 @@ class PrevNextMenu(StateImp):
         super().run()
         self.waiting_for_data = True
         self.socket.emit('getQueue', self.update_data)
-        self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         """processes prev/next commands"""

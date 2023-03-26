@@ -30,7 +30,7 @@ def init():
         "FONT_L": ImageFont.truetype(
             os.path.join(SCRIPT_ROOT_PATH, 'fonts/Roboto-Medium.ttf'), 30),
         "FONT_FAS": ImageFont.truetype(
-            os.path.join(SCRIPT_ROOT_PATH, 'fonts/Font Awesome 6 Free-Solid-900.otf'), 28)
+            os.path.join(SCRIPT_ROOT_PATH, 'fonts/FontAwesome5-Free-Solid.otf'), 28)
     }
 
     display = DisplayHandler(fonts, MESSAGES_DATA)
@@ -42,13 +42,7 @@ def init():
 
     def socket_thread():
         print("Socket thread started")
-        while True:
-            if player.player_state_machine.status == STATE_PLAY:
-                # Refresh the display every second when playing
-                socket.wait(1)
-                player.refresh()
-            else:
-                socket.wait(3)
+        socket.wait()
 
     thread = Thread(target=socket_thread)
     thread.daemon = True

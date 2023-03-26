@@ -8,7 +8,7 @@ def check_perfo(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
-        print(f"[PERFO] Execution time for {func.__name__} in file "
+        print(f"[PERFO] {time.asctime()} Execution time for {func.__name__} in file "
               f"{func.__code__.co_filename} at line {func.__code__.co_firstlineno}"
               f": {end_time - start_time} seconds")
         return result

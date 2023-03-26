@@ -18,10 +18,9 @@ echo "Installing new python 3.x and pip3 dependencies for pirateaudio plugin"
 sudo apt-get update
 sudo apt-get install -y python3-rpi.gpio python3-spidev python3-pip python3-pil python3-numpy virtualenv
 echo "Create virtual environment for pirateaudio plugin"
-supo virtualenv -p python3 /data/plugins/system_hardware/pirateaudio/.venv
+virtualenv -p python3 $papath/.venv  --system-site-packages
 echo "Install pirateaudio plugin inside virtual environment"
-source /data/plugins/system_hardware/pirateaudio/.venv/bin/activate
-sudo pip3 install .
+sudo $papath/.venv/bin/pip3 install $papath
 
 # undo changes to userconfig for pirate audio hat in case of updating plugin
 sudo sed -i '/### End of parameters for pirateaudio plugin ###/d' /boot/userconfig.txt

@@ -1,10 +1,9 @@
+from source.debug import check_perfo
 from time import strftime, gmtime, time  # v.0.0.7
 from math import ceil
-from numpy import mean
 from PIL import Image, ImageDraw, ImageStat, ImageFilter
 
 from source import SIMULATOR
-from source.debug import check_perfo
 
 if SIMULATOR:
     import source.simulator.ST7789 as ST7789  # simulator
@@ -56,7 +55,7 @@ class OverlayData:
     def contrast_overlay(self, im_stats):
         """ in case of dark background, change the overlay color """
         im_mean = im_stats.mean
-        mn = mean(im_mean)
+        mn = sum(im_mean) / len(im_mean)
         self.txt_color = (255, 255, 255)
         self.str_color = (15, 15, 15)
         self.bar_bg_color = (200, 200, 200)
@@ -135,13 +134,13 @@ class DisplayHandler:
     def refresh(self):
         pass
 
-    #@check_perfo
+    @check_perfo
     def sendtodisplay(self, image_to_display):
         """send img to display"""
         self.screen.last_refresh = time()
         self.display.display(image_to_display)
 
-    #@check_perfo
+    @check_perfo
     def display_stuff(self, picture, text, marked, start, icons='nav'):
         """create image and overlays"""
 
@@ -153,7 +152,7 @@ class DisplayHandler:
             """draw symbols"""
             draw3.text((x, y), text, font=fontstring, fill=fillstring)
 
-        #@check_perfo
+        @check_perfo
         def f_textcontent(text, start, listmax1):
             if text == []:
                 return
@@ -284,7 +283,7 @@ class DisplayHandler:
                         self.overlay.str_color)
         self.f_drawtext(x1, top, text,
                         fontsize, self.overlay.txt_color)
-
+    @check_perfo
     def f_background(self, album_image):
         """helper background"""
         try:  # to catch not displayable images
@@ -300,8 +299,13 @@ class DisplayHandler:
         self.overlay.contrast_overlay(im_stat)
         return self.screen.current_image
 
+    @check_perfo
     def f_displayoverlay(self, varstatus, volume, data):
         """displayoverlay"""
+        # TODO !!!
+        # Anticiper les futurs affichages du genre précharger une liste de variables Draw qui vont dessiner la barre de progression qui se remplira au fur et à mesure
+        # Pareil pour le volume
+        # Comme ça on ne fait pas de calculs inutiles pendant la lecture
         self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
 
         if varstatus in ['pause', 'stop']:
@@ -338,6 +342,7 @@ class DisplayHandler:
         self.draw.rectangle((5, 184, 5 + int((float(volume)/100)*(self.screen.width - 48)),
                             184 + 8), self.overlay.bar_color)  # foreground
 
+    @check_perfo
     def f_timebar(self, data, duration):
         """helper timebar"""
         self.draw = ImageDraw.Draw(self.screen.current_image, 'RGBA')
