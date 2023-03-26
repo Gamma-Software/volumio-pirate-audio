@@ -101,7 +101,7 @@ class MainMenu(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         choice = self.choices[self.cursor]
@@ -128,7 +128,7 @@ class MainMenu(StateImp):
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
 
 class BrowseLibraryMenu(StateImp):
@@ -154,13 +154,13 @@ class BrowseLibraryMenu(StateImp):
             if 'uri' in data:
                 self.uri.append(data['uri'])
 
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
         print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
         self.socket.emit('browseLibrary', {'uri': self.selected_uri})
-        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         uri = self.uri[self.cursor]
@@ -192,7 +192,7 @@ class BrowseLibraryMenu(StateImp):
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass
@@ -208,20 +208,20 @@ class BrowseSourceMenu(StateImp):
     def update_data(self, data):
         self.choices = [data[i]['name'] for i in range(len(data))]
         self.uri = [data[i]['uri'] for i in range(len(data))]
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
         print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
         self.socket.emit('getBrowseSources', '', self.update_data)
-        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         return BrowseLibraryMenu(self.uri[self.cursor], MESSAGES_DATA, self.socket, self.display)
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass
@@ -240,7 +240,7 @@ class SeekMenu(StateImp):
         duration_msg = time.strftime("%M:%S", time.gmtime(
             self.current_duration))
 
-        self.display.display_menu([MESSAGES_DATA['DISPLAY']['SEEK'],
+        self.display.display_menu_content([MESSAGES_DATA['DISPLAY']['SEEK'],
                                    ''.join([seek_msg, ' / ', duration_msg])],
                                   self.cursor, 'seek')
 
@@ -257,7 +257,7 @@ class SeekMenu(StateImp):
         super().run()
         # Update data
         self.socket.emit('getState', '', self.update_duration)
-        self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0, "seek")
+        self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0, "seek")
 
     def next(self) -> State:
         self.socket.emit('seek', int(float(self.seek/1000)))
@@ -295,16 +295,16 @@ class PrevNextMenu(StateImp):
     def update_data(self, data):
         self.choices = [d['name'] for d in data]
         if len(self.choices) <= 1:
-            self.display.display_menu(MESSAGES_DATA['DISPLAY']['NO_QUEUE'], 0, 'info')
+            self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['NO_QUEUE'], 0, 'info')
             return
-        self.display.display_menu(self.choices, 0, 'seek')
+        self.display.display_menu_content(self.choices, 0, 'seek')
         print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
         self.waiting_for_data = True
         self.socket.emit('getQueue', self.update_data)
-        #self.display.display_menu(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
+        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         """processes prev/next commands"""
@@ -320,7 +320,7 @@ class PrevNextMenu(StateImp):
         super().up_down(input)
         if len(self.choices) <= 1:
             return
-        self.display.display_menu(self.choices, self.cursor, 'seek')
+        self.display.display_menu_content(self.choices, self.cursor, 'seek')
 
     def select(self):
         pass
@@ -332,14 +332,14 @@ class SleepTimerMenu(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         return MenuClosed(SleepTimerMenu, MESSAGES_DATA, self.socket, self.display)
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass
@@ -362,7 +362,7 @@ class AlarmMenu(StateImp):
         super().run()
         self.waiting_for_data = True
         self.socket.emit('getAlarms', self.update_data)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         if self.waiting_for_data:
@@ -373,7 +373,7 @@ class AlarmMenu(StateImp):
         super().up_down(input)
         if self.waiting_for_data:
             return None
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass
@@ -387,7 +387,7 @@ class RebootMenu(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         # Trick: if the user cancels (input == 1), the menu is closed without rebooting
@@ -400,7 +400,7 @@ class RebootMenu(StateImp):
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass
@@ -414,7 +414,7 @@ class ShutdownMenu(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         # Trick: if the user cancels (input == 1), the menu is closed without rebooting
@@ -428,7 +428,7 @@ class ShutdownMenu(StateImp):
 
     def up_down(self, input):
         super().up_down(input)
-        self.display.display_menu(self.choices, self.cursor)
+        self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
         pass

@@ -1,11 +1,9 @@
 import sys
 import time
 import typing
-import requests
 from copy import deepcopy
-from io import BytesIO
 
-from source.debug import print_debug, check_perfo
+from source.debug import check_perfo
 from source.menu.menu import Menu
 from source.hardware.display import DisplayHandler
 from source.hardware.buttons import ButtonHandler
@@ -16,6 +14,13 @@ from source import SIMULATOR
 if SIMULATOR:
     from source.simulator.Simulator import Simulator
     simulator = Simulator()
+
+
+class ScreenSleepData:
+    def __init__(self, time_to_sleep) -> None:
+        self.sleeping = False
+        self.time_to_sleep = time_to_sleep
+        self.timer = time()
 
 
 class Player:
@@ -71,7 +76,6 @@ class Player:
             self.clean()
 
     def button_on_click(self, button):
-        #print("Button pressed: " + str(button))
         # If the menu is closed, we are in the player
         if not self.menu.open:  # In Player
             if button == 'b':
@@ -110,7 +114,7 @@ class Player:
 
             # After the button is pressed, we check if the menu is still open
             if not self.menu.open:
-                if self.menu.current_state.close_on == None:
+                if self.menu.current_state.close_on is None:
                     return
                 self.socket_on_push_state(self.last_data, True)
                 self.register_events()  # Get back the callbacks
@@ -147,34 +151,10 @@ class Player:
         if self.player_state_machine.last_state != state and not self.menu.open:
             self.player_state_machine.parse_data(data)
 
-            # May take a while TODO refactor
-            if "http" not in data['albumart']:
-                albumart_url = ''.join([f'http://{self.remote_host}:{self.remote_port}',
-                                        data['albumart'].encode('ascii', 'ignore').decode('utf-8')])
-            else:  # in case the albumart is already local file
-                albumart_url = data['albumart'].encode('ascii', 'ignore').decode('utf-8')
-
-            # Download album art only if it changed
-            # TODO integrate this in the state machine
-            if self.player_state_machine.last_music_data.album_art != \
-               self.player_state_machine.music_data.album_art:
-                self.player_state_machine.music_data.album_url = albumart_url
-                self.display.f_background(BytesIO(requests.get(albumart_url).content))
-
-            self.display.f_displayoverlay(self.player_state_machine.status,
-                                          self.player_state_machine.current_volume,
-                                          data)
-            if self.player_state_machine.music_data.duration:
-                self.display.f_timebar(data, self.player_state_machine.music_data.duration)
-
-            # display only if img changed
-            #if self.display.screen.image_check != self.display.screen.current_image:
-            self.display.screen.image_check = self.display.screen.current_image
-            self.display.sendtodisplay(self.display.screen.current_image)
-
-            # TODO integrate this in the state machine
-            self.player_state_machine.last_music_data = deepcopy(
-                self.player_state_machine.music_data)
+            self.display.display_player(self.player_state_machine.music_data,
+                                        self.player_state_machine.current_volume,
+                                        self.player_state_machine.status,
+                                        self.player_state_machine.current_position)
 
     def socket_on_push_queue(self, queue):
         self.player_state_machine.queue = queue
