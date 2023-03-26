@@ -75,7 +75,6 @@ class MenuClosed(StateImp):
 
     def run(self):
         super().run()
-        self.display.display_menu(self.choices, self.cursor)
         print(f"Close the menu on {self.close_on}")
 
     def next(self) -> State:

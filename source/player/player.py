@@ -110,9 +110,9 @@ class Player:
 
             # After the button is pressed, we check if the menu is still open
             if not self.menu.open:
-                if not self.menu.current_state.close_on:
-                    self.socket_on_push_state(self.last_data)
+                if self.menu.current_state.close_on == None:
                     return
+                self.socket_on_push_state(self.last_data, True)
                 self.register_events()  # Get back the callbacks
                 self.socket.emit('getState', '', self.socket_on_push_state)
 
@@ -125,8 +125,9 @@ class Player:
 
     @check_perfo
     def socket_on_push_state(self,
-                             data: typing.Tuple[typing.Dict[str, typing.Any]]):
-        if data == self.last_data:
+                             data: typing.Tuple[typing.Dict[str, typing.Any]],
+                             force=False):
+        if data == self.last_data and not force:
             return
 
         self.last_data = data
