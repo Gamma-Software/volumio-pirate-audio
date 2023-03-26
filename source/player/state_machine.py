@@ -16,12 +16,12 @@ class PlayerStateMachine:
         self.current_volume = 50  # by default the volume is 50%
         self.current_position = 0  # by default the position is 0
         self.elapsed_time = 0
-        self.music_data = Music(None, None, None, None, None, None)  # TODO
+        self.music_data = Music(None, None, None, None, None)  # TODO
         self.last_music_data = self.music_data.copy()
         self.music_changed = False
         self.queue = []
 
-    def parse_data(self, data):
+    def parse_data(self, data, remote_host, remote_port):
         if 'volume' in data:
             self.current_volume = data['volume']
 
@@ -49,7 +49,12 @@ class PlayerStateMachine:
         if 'albumart' in data.keys():
             self.music_data.album_art = data['albumart']
         if 'uri' in data.keys():
-            self.music_data.album_url = data['uri']
+            if "http" not in data['uri']:
+                self.music_data.album_url = ''.join([
+                    f'http://{remote_host}:{remote_port}',
+                    data['uri'].encode('ascii', 'ignore').decode('utf-8')])
+            else:  # in case the albumart is already local file
+                self.music_data.album_url = data['uri'].encode('ascii', 'ignore').decode('utf-8')
 
     def play_pause(self):
         if self.status == STATE_PLAY and\

@@ -1,8 +1,9 @@
-from source.hardware.draw_utils import DrawUtils
-from source.hardware.draw_utils import ScreenData, ScreenSleepData, OverlayData
+import threading
+from source.player.music import Music
+from source.hardware.draw_utils import DrawUtils, ScreenData, OverlayData
 from source.debug import check_perfo
 from time import time
-from PIL import ImageDraw, ImageStat, ImageFilter
+from PIL import Image, ImageDraw, ImageStat, ImageFilter
 
 from source import SIMULATOR
 
@@ -16,19 +17,24 @@ class DisplayHandler:
     def __init__(self, fonts, messages, time_to_sleep=60, max_list=5) -> None:
         self.fonts = fonts
         self.messages = messages
-        self.draw_utils = DrawUtils(fonts, self.screen, self.overlay)
 
         # screen
         self.max_list = max_list
-        self.sleep = ScreenSleepData(time_to_sleep)
         self.screen = ScreenData()
-
-        # overlay
         self.overlay = OverlayData()
+        self.draw_utils = DrawUtils(fonts, self.screen, self.overlay)
+
+        self.default_background = Image.open('images/default.jpg').resize(
+            (self.screen.width, self.screen.height))
+        self.static_menu_image = None
+        self.static_player_image = None
+        self.dynamic_image = self.default_background.copy()
+        self.last_menu_image = self.default_background.copy()
+        self.last_player_image = self.default_background.copy()
 
         self.display = ST7789.ST7789(
-            height=240,
-            width=240,
+            height=self.screen.width,
+            width=self.screen.height,
             rotation=90,  # Needed to display the right way up on Pirate Audio
             port=0,       # SPI port
             cs=1,         # SPI port Chip-select channel
@@ -45,14 +51,12 @@ class DisplayHandler:
     def display_connect(self):
         """display connect"""
         self.display.set_backlight(True)
-        self.display_menu(self.screen.default_background,
-                          self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
+        self.display_menu(self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
 
     def display_disconnect(self):
         """display disconnect"""
         self.display.set_backlight(True)
-        self.display_menu(self.screen.default_background,
-                          self.messages["DISPLAY"]['LOSTCONNECTION'], 0, 0, 'info')
+        self.display_menu(self.messages["DISPLAY"]['LOSTCONNECTION'], 0, 0, 'info')
 
     def display_menu_content(self, menu_list, cursor, icon='nav'):
         """display menu"""
@@ -60,99 +64,100 @@ class DisplayHandler:
 
         if len(menu_list) == 0:
             menu_list = self.messages['DISPLAY']['EMPTY']
-        self.display_menu(self.screen.default_background,
-                          menu_list, cursor, cursor, icon)
+        self.display_menu(menu_list, cursor, cursor, icon)
 
     def display_shutdown(self):
         self.display.set_backlight(True)
         # TODO : add a shutdown message
-        self.display_menu(self.screen.default_background,
-                          ['executing:', 'shutdown'], 0, 0, 'info')
+        self.display_menu(['executing:', 'shutdown'], 0, 0, 'info')
 
     def display_reboot(self):
         self.display.set_backlight(True)
         # TODO : add a reboot message
-        self.display_menu(self.screen.default_background,
-                          ['executing:', 'reboot'], 0, 0, 'info')
+        self.display_menu(['executing:', 'reboot'], 0, 0, 'info')
 
     def refresh(self):
         pass
 
-    def sendtodisplay(self, image_to_display):
+    def sendtodisplay(self, image_to_display: Image):
         """send img to display"""
-        self.screen.last_refresh = time()
-        self.display(image_to_display)
+        self.last_refresh = time()
+        self.display.display(image_to_display._image)
 
     @check_perfo
-    def display_player(self, music_data, current_volume, status, current_position,
+    def display_player(self, music_data: Music, current_volume, status, current_position,
                        redraw_static=False, use_last_image=False):
         if use_last_image:
-            self.sendtodisplay(self.screen.last_player_image)
+            self.sendtodisplay(self.last_player_image)
             return
 
         # Draw static elements only if needed
-        if redraw_static or self.static_image is None:
+        if redraw_static or self.static_player_image is None:
             # This is the canvas on which we will draw.
             # (the current image is the default background or the album image)
             if music_data.album_image:
-                self.static_image = music_data.album_image.filter(ImageFilter.BLUR)  # Blur
-                im_stat = ImageStat.Stat(self.static_image)
+                self.static_player_image = music_data.album_image.filter(ImageFilter.BLUR)  # Blur
+                im_stat = ImageStat.Stat(self.static_player_image)
                 self.overlay.update_contrast_overlay(im_stat)
             else:
-                self.static_image = ImageDraw.Draw(self.screen.default_background, 'RGBA')
+                # If their is a music playing but no album image we start a thread to download it
+                if music_data.title and music_data.album_image is None:
+                    threading.Thread(target=music_data.download_album_image,
+                                     args=((self.screen.width, self.screen.height))).start()
+                self.static_player_image = ImageDraw.Draw(self.default_background.copy(), 'RGBA')
 
             # Draw first the background with static elements such as
             # the title and the album name and the artist name and the menu button
-            self.draw_utils.draw_overlay(self.static_image, status, current_volume, music_data)
+            self.draw_utils.draw_overlay(self.static_player_image, status, music_data)
 
         # Then draw the dynamic elements such as the volume bar and the time bar
-        self.dynamic_image = self.static_image.copy()
+        self.dynamic_image = ImageDraw.Draw(self.static_player_image._image.copy(), 'RGBA')
         self.draw_utils.draw_volume_overlay(self.dynamic_image, current_volume)
         self.draw_utils.draw_timebar(self.dynamic_image, current_position, music_data.duration)
 
         self.sendtodisplay(self.dynamic_image)
-        self.screen.last_player_image = self.dynamic_image.copy()
+        self.last_player_image = self.dynamic_image._image.copy()
 
     @check_perfo
     def display_menu(self, choices, marked, start, icons='nav', redraw_static=False,
                      use_last_image=False):
         if use_last_image:
-            self.sendtodisplay(self.screen.last_player_image)
+            self.sendtodisplay(self.last_player_image)
             return
 
         # Draw static elements only if needed
-        if redraw_static or self.static_image is None:
+        if redraw_static or self.static_menu_image is None:
             # This is the canvas on which we will draw.
             # (the current image is the default background or the album image)
-            self.static_image = ImageDraw.Draw(self.screen.default_background, 'RGBA')
+            self.static_menu_image = ImageDraw.Draw(self.default_background.copy(), 'RGBA')
 
             # Draw first the background with static elements such as the symbols
             if icons == 'nav':
                 # Fontawesome symbol ok
-                self.draw_utils.draw_symbol(self.static_image, 0, 50, u"\uf14a")
+                self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
                 # Fontawesome symbol up
-                self.draw_utils.draw_symbol(self.static_image, 210, 50, u"\uf151")
+                self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf151")
                 # Fontawesome symbol back
-                self.draw_utils.draw_symbol(self.static_image, 0, 170, u"\uf0e2")
+                self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
                 # Fontawesome symbol down
-                self.draw_utils.draw_symbol(self.static_image, 210, 170, u"\uf150")
+                self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf150")
             elif icons == 'info':
                 # Fontawesome symbol info
-                self.draw_utils.draw_symbol(self.static_image, 10, 10, u"\uf05a")
+                self.draw_utils.draw_symbol(self.static_menu_image, 10, 10, u"\uf05a")
             elif icons == 'seek':
                 # Fontawesome symbol ok
-                self.draw_utils.draw_symbol(self.static_image, 0, 50, u"\uf14a")
+                self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
                 # Fontawesome symbol forward
-                self.draw_utils.draw_symbol(self.static_image, 210, 50, u"\uf04e")
+                self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf04e")
                 # Fontawesome symbol back
-                self.draw_utils.draw_symbol(self.static_image, 0, 170, u"\uf0e2")
+                self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
                 # Fontawesome symbol backward
-                self.draw_utils.draw_symbol(self.static_image, 210, 170, u"\uf04a")
+                self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf04a")
 
         # Then draw the dynamic elements such as the menu content
-        self.dynamic_image = self.static_image.copy()
+        self.dynamic_image = ImageDraw.Draw(self.static_menu_image._image.copy(), 'RGBA')
         self.draw_utils.draw_menu_content(self.dynamic_image, choices, start, marked, self.max_list)
         self.draw_utils.draw_page_indicator(self.dynamic_image, marked, len(choices), self.max_list)
 
         self.sendtodisplay(self.dynamic_image)
-        self.screen.last_menu_image = self.dynamic_image.copy()
+        self.last_menu_image = self.dynamic_image._image.copy()

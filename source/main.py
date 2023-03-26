@@ -8,7 +8,6 @@ from PIL import ImageFont
 from pathlib import Path
 from socketIO_client import SocketIO
 from source import SIMULATOR
-from source.player.state_machine import STATE_PLAY
 from source.player.player import Player
 from source.hardware.display import DisplayHandler
 from source.hardware.buttons import ButtonHandler
@@ -17,7 +16,6 @@ from source.debug import check_perfo
 from source.utils import MESSAGES_DATA, CONFIG_DATA
 
 SCRIPT_ROOT_PATH = Path(__file__).parent.parent.absolute()
-
 
 
 @check_perfo
@@ -34,7 +32,8 @@ def init():
     }
 
     display = DisplayHandler(fonts, MESSAGES_DATA)
-    buttons = ButtonHandler({"a": 5, "b": 6, "x": 16, "y": CONFIG_DATA['gpio_ybutton']['value']})  # TODO make this configurable
+    # TODO make this configurable
+    buttons = ButtonHandler({"a": 5, "b": 6, "x": 16, "y": CONFIG_DATA['gpio_ybutton']['value']})
     remote_host = 'localhost' if not SIMULATOR else 'volumio.local'
     socket = SocketIO(remote_host, 3000)
     menu = Menu(socket, display)

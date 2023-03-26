@@ -59,12 +59,12 @@ class OverlayData:
 
 
 class DrawUtils:
-    def __init__(self, fonts, screen: ScreenData, overlay) -> None:
+    def __init__(self, fonts, screen, overlay) -> None:
         self.fonts = fonts
         self.screen = screen
         self.overlay = overlay
 
-    def draw_page_indicator(self, canvas, current_page, total_pages, max_pages):
+    def draw_page_indicator(self, canvas: ImageDraw, current_page, total_pages, max_pages):
         """Draws the page indicator
         Such as 1/3, 2/3, 3/3
         on the bottom of the screen
@@ -83,7 +83,7 @@ class DrawUtils:
         _, _, x, y = self.text_size_on_screen(pagestring, self.fonts['FONT_M'])
         self.draw_text(canvas, x, self.screen.height - y, pagestring, self.fonts['FONT_M'])
 
-    def draw_text(self, canvas, x, y, text, fontstring=None, fillstring=(255, 255, 255)):
+    def draw_text(self, canvas: ImageDraw, x, y, text, fontstring=None, fillstring=(255, 255, 255)):
         """draw text"""
         if not canvas:
             return
@@ -93,16 +93,16 @@ class DrawUtils:
             fontstring = self.fonts['FONT_M']
         canvas.text((x, y), text, font=fontstring, fill=fillstring)
 
-    def draw_symbol(self, canvas, x, y, text):
+    def draw_symbol(self, canvas: ImageDraw, x, y, text):
         """draw symbols"""
         self.draw_text(canvas, x, y, text)
 
-    def draw_text_shadowed(self, canvas, text, fontsize, top, shadowoffset=1):
+    def draw_text_shadowed(self, canvas: ImageDraw, text, fontsize, top, shadowoffset=1):
         """draw content"""
-        text_size = self.text_size_on_screen(text, self.fonts['FONT_M'], fontsize)
+        text_width, _, _, _ = self.text_size_on_screen(text, self.fonts['FONT_M'])
         # Get the text position from the text size on the screen
-        if text_size <= self.screen.width:
-            text_position_x = (self.screen.width - text_size)//2
+        if text_width <= self.screen.width:
+            text_position_x = (self.screen.width - text_width)//2
         else:
             text_position_x = 0
 
@@ -131,9 +131,7 @@ class DrawUtils:
                 remaining = ''.join(['-', minute, ':',
                                      strftime("%S", gmtime(duration - int(float(seek)/1000)))])
 
-            text_size = self.text_size_on_screen(self.screen, remaining,
-                                                 self.fonts['FONT_M'],
-                                                 self.fonts['FONT_M'])
+            text_size = self.text_size_on_screen(remaining, self.fonts['FONT_M'])
             self.draw_text(canvas, self.screen.width - text_size - 2 + 2, 206 - 2 + 2, remaining,
                            self.fonts['FONT_M'], self.overlay.str_color)  # shadow, fill by mean
             self.draw_text(canvas, self.screen.width - text_size - 2, 206 - 2, remaining,
@@ -141,10 +139,10 @@ class DrawUtils:
 
     def draw_volume_overlay(self, canvas: ImageDraw, volume):
         if volume >= 0 and volume <= 49:
-            self.draw_text(200, 174, VOLUME_LOW_UNICODE,
+            self.draw_text(canvas, 200, 174, VOLUME_LOW_UNICODE,
                            self.fonts['FONT_FAS'], self.overlay.txt_color)
         else:
-            self.draw_text(200, 174, VOLUME_HIGH_UNICODE,
+            self.draw_text(canvas, 200, 174, VOLUME_HIGH_UNICODE,
                            self.fonts['FONT_FAS'], self.overlay.txt_color)
 
         canvas.rectangle((5, 184, self.screen.width - 44, 184 + 8),
@@ -153,7 +151,7 @@ class DrawUtils:
         canvas.rectangle((5, 184, 5 + int((volume/100)*(self.screen.width - 48)),
                           184 + 8), self.overlay.bar_color)  # foreground
 
-    def draw_overlay(self, canvas, player_status, music_data: Music):
+    def draw_overlay(self, canvas: ImageDraw, player_status, music_data: Music):
         # Draw play/pause button
         if player_status in ['pause', 'stop']:
             self.draw_text(canvas, 4, 53, PLAY_BUTTON_UNICODE,
@@ -183,11 +181,11 @@ class DrawUtils:
         return [len1, hei1, x, y]
 
     @check_perfo
-    def draw_menu_content(self, canvas, text, start, marked, listmax1):
+    def draw_menu_content(self, canvas: ImageDraw, text, start, marked, listmax1):
         if text == []:
             return
         if isinstance(text, list):  # check if text is array
-            starting_position = [i // self.screen.max_list * self.screen.max_list
+            starting_position = [i // listmax1 * listmax1
                                  for i in range(0, len(text))]
             start = starting_position[marked]
 
@@ -199,15 +197,13 @@ class DrawUtils:
             if listbis > result:
                 listbis = result
             for i in range(start, listbis):  # v.0.0.4 range max werteliste
-                totaltextheight += self.text_size_on_screen(self.screen.width, self.screen.height,
-                                                            text[0+i], self.fonts['FONT_M'])[1]
+                totaltextheight += self.text_size_on_screen(text[0+i], self.fonts['FONT_M'])[1]
             y = (self.screen.height // 2) - (totaltextheight // 2)  # startheight
             i = 0
 
             # Loop for creating text to display
             for i in range(start, listbis):  # v.0.0.4
-                len1, hei1, x, _ = self.text_size_on_screen(self.screen.width, self.screen.height,
-                                                            text[0+i], self.fonts['FONT_M'])
+                len1, hei1, x, _ = self.text_size_on_screen(text[0+i], self.fonts['FONT_M'])
                 if x < 0:  # v.0.0.4 dont center text if to long
                     x = 0
                 if i == marked:
@@ -219,7 +215,7 @@ class DrawUtils:
                     self.draw_text(canvas, x, y, text[0+i], self.fonts['FONT_M'], (255, 255, 255))
                 y += hei1  # add line to startheigt for next entry
         else:
-            len1, hei1, x, y = self.text_size_on_screen(self.screen.width, self.screen.height,
-                                                        text, self.fonts['FONT_M'])
+            len1, hei1, x, y = self.text_size_on_screen(text, self.fonts['FONT_M'])
+            # Rectangle behind text
             canvas.rectangle((x, y, x + len1, y + hei1), (255, 255, 255))
             self.draw_text(canvas, x, y, text, self.fonts['FONT_M'], (0, 0, 0))

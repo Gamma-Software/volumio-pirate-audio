@@ -149,7 +149,7 @@ class Player:
                          str(data['volume']),
                          str(data['seek'])])
         if self.player_state_machine.last_state != state and not self.menu.open:
-            self.player_state_machine.parse_data(data)
+            self.player_state_machine.parse_data(data, self.remote_host, self.remote_port)
 
             self.display.display_player(self.player_state_machine.music_data,
                                         self.player_state_machine.current_volume,

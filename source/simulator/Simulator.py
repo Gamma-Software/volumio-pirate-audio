@@ -1,6 +1,6 @@
 import json
 import time
-from threading import Thread
+from PIL import Image
 
 from source import SIMULATOR
 if SIMULATOR:
@@ -70,8 +70,9 @@ class Simulator:
         # Done! Time to quit.
         pygame.quit()
 
-    def display_image(self, image):
-        mode = image.mode
-        size = image.size
-        data = image.tobytes()
-        self.image_to_display = pygame.image.fromstring(data, size, mode)
+    def display_image(self, image: Image):
+        self.image_to_display = self.convert_pillow_image(image)
+
+    def convert_pillow_image(self, pilImage):
+        return pygame.image.fromstring(
+            pilImage.tobytes(), pilImage.size, pilImage.mode).convert()
