@@ -95,7 +95,7 @@ class DrawUtils:
 
     def draw_symbol(self, canvas: ImageDraw, x, y, text):
         """draw symbols"""
-        self.draw_text(canvas, x, y, text)
+        self.draw_text(canvas, x, y, text, self.fonts['FONT_FAS'])
 
     def draw_text_shadowed(self, canvas: ImageDraw, text, fontsize, top, shadowoffset=1):
         """draw content"""
@@ -114,28 +114,30 @@ class DrawUtils:
                        fontsize, self.overlay.txt_color)
 
     def draw_timebar(self, canvas: ImageDraw, seek, duration):
-        if seek and duration and seek != 0 and duration != 0:
-            # background
-            canvas.rectangle((5, 230, self.screen.width - 5, 230 + 8), self.overlay.bar_bg_color)
-            # bar foreground
-            canvas.rectangle((5, 230, int(seek/duration/1000)*(self.screen.width-10), 230 + 8),
-                             self.overlay.bar_color)
+        if duration == 0:
+            return
 
-            hour = strftime("%#H", gmtime(duration - int(float(seek)/1000)))
-            if hour == '0':
-                remaining = ''.join(['-', strftime("%M:%S",
-                                                   gmtime(duration - int(float(seek)/1000)))])
-            else:
-                minute = strftime("%#M", gmtime(duration - int(float(seek)/1000)))
-                minute = str((int(hour)*60) + int(minute))
-                remaining = ''.join(['-', minute, ':',
-                                     strftime("%S", gmtime(duration - int(float(seek)/1000)))])
+        # background
+        canvas.rectangle((5, 230, self.screen.width - 5, 230 + 8), self.overlay.bar_bg_color)
+        # bar foreground
+        canvas.rectangle((5, 230, int(seek/duration/1000)*(self.screen.width-10), 230 + 8),
+                         self.overlay.bar_color)
 
-            text_size = self.text_size_on_screen(remaining, self.fonts['FONT_M'])
-            self.draw_text(canvas, self.screen.width - text_size - 2 + 2, 206 - 2 + 2, remaining,
-                           self.fonts['FONT_M'], self.overlay.str_color)  # shadow, fill by mean
-            self.draw_text(canvas, self.screen.width - text_size - 2, 206 - 2, remaining,
-                           self.fonts['FONT_M'], self.overlay.txt_color)  # fill by mean
+        hour = strftime("%#H", gmtime(duration - int(float(seek)/1000)))
+        if hour == '0':
+            remaining = ''.join(['-', strftime("%M:%S",
+                                               gmtime(duration - int(float(seek)/1000)))])
+        else:
+            minute = strftime("%#M", gmtime(duration - int(float(seek)/1000)))
+            minute = str((int(hour)*60) + int(minute))
+            remaining = ''.join(['-', minute, ':',
+                                 strftime("%S", gmtime(duration - int(float(seek)/1000)))])
+
+        text_width, _, _, _ = self.text_size_on_screen(remaining, self.fonts['FONT_M'])
+        self.draw_text(canvas, self.screen.width - text_width - 2 + 2, 206 - 2 + 2, remaining,
+                       self.fonts['FONT_M'], self.overlay.str_color)  # shadow, fill by mean
+        self.draw_text(canvas, self.screen.width - text_width - 2, 206 - 2, remaining,
+                       self.fonts['FONT_M'], self.overlay.txt_color)  # fill by mean
 
     def draw_volume_overlay(self, canvas: ImageDraw, volume):
         if volume >= 0 and volume <= 49:

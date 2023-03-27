@@ -92,19 +92,22 @@ class DisplayHandler:
             return
 
         # Draw static elements only if needed
-        if redraw_static or self.static_player_image is None:
+        if redraw_static or self.static_player_image is None or music_data.need_to_be_updated:
             # This is the canvas on which we will draw.
             # (the current image is the default background or the album image)
             if music_data.album_image:
-                self.static_player_image = music_data.album_image.filter(ImageFilter.BLUR)  # Blur
-                im_stat = ImageStat.Stat(self.static_player_image)
+                self.static_player_image = ImageDraw.Draw(
+                    music_data.album_image.filter(ImageFilter.BLUR).copy(), 'RGBA')  # Blur
+                im_stat = ImageStat.Stat(self.static_player_image._image)
                 self.overlay.update_contrast_overlay(im_stat)
+                music_data.need_to_be_updated = False
             else:
                 # If their is a music playing but no album image we start a thread to download it
                 if music_data.title and music_data.album_image is None:
                     threading.Thread(target=music_data.download_album_image,
-                                     args=((self.screen.width, self.screen.height))).start()
-                self.static_player_image = ImageDraw.Draw(self.default_background.copy(), 'RGBA')
+                                     args=((self.screen.width, self.screen.height), )).start()
+                self.static_player_image = ImageDraw.Draw(
+                    self.default_background.filter(ImageFilter.BLUR).copy(), 'RGBA')
 
             # Draw first the background with static elements such as
             # the title and the album name and the artist name and the menu button
@@ -125,34 +128,33 @@ class DisplayHandler:
             self.sendtodisplay(self.last_player_image)
             return
 
-        # Draw static elements only if needed
-        if redraw_static or self.static_menu_image is None:
-            # This is the canvas on which we will draw.
-            # (the current image is the default background or the album image)
-            self.static_menu_image = ImageDraw.Draw(self.default_background.copy(), 'RGBA')
+        # Draw static elements
+        # This is the canvas on which we will draw.
+        # (the current image is the default background or the album image)
+        self.static_menu_image = ImageDraw.Draw(self.default_background.copy(), 'RGBA')
 
-            # Draw first the background with static elements such as the symbols
-            if icons == 'nav':
-                # Fontawesome symbol ok
-                self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
-                # Fontawesome symbol up
-                self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf151")
-                # Fontawesome symbol back
-                self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
-                # Fontawesome symbol down
-                self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf150")
-            elif icons == 'info':
-                # Fontawesome symbol info
-                self.draw_utils.draw_symbol(self.static_menu_image, 10, 10, u"\uf05a")
-            elif icons == 'seek':
-                # Fontawesome symbol ok
-                self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
-                # Fontawesome symbol forward
-                self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf04e")
-                # Fontawesome symbol back
-                self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
-                # Fontawesome symbol backward
-                self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf04a")
+        # Draw first the background with static elements such as the symbols
+        if icons == 'nav':
+            # Fontawesome symbol ok
+            self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
+            # Fontawesome symbol up
+            self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf151")
+            # Fontawesome symbol back
+            self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
+            # Fontawesome symbol down
+            self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf150")
+        elif icons == 'info':
+            # Fontawesome symbol info
+            self.draw_utils.draw_symbol(self.static_menu_image, 10, 10, u"\uf05a")
+        elif icons == 'seek':
+            # Fontawesome symbol ok
+            self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")
+            # Fontawesome symbol forward
+            self.draw_utils.draw_symbol(self.static_menu_image, 210, 50, u"\uf04e")
+            # Fontawesome symbol back
+            self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
+            # Fontawesome symbol backward
+            self.draw_utils.draw_symbol(self.static_menu_image, 210, 170, u"\uf04a")
 
         # Then draw the dynamic elements such as the menu content
         self.dynamic_image = ImageDraw.Draw(self.static_menu_image._image.copy(), 'RGBA')

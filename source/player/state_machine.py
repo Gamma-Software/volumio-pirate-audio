@@ -47,14 +47,14 @@ class PlayerStateMachine:
         if 'album' in data.keys():
             self.music_data.album_name = data['album']
         if 'albumart' in data.keys():
-            self.music_data.album_art = data['albumart']
-        if 'uri' in data.keys():
-            if "http" not in data['uri']:
+            self.music_data.album_url = data['albumart']
+            if "http" not in self.music_data.album_url:
                 self.music_data.album_url = ''.join([
-                    f'http://{remote_host}:{remote_port}',
-                    data['uri'].encode('ascii', 'ignore').decode('utf-8')])
+                    f'http://{remote_host}:{remote_port}/',
+                    self.music_data.album_url.encode('ascii', 'ignore').decode('utf-8')])
             else:  # in case the albumart is already local file
-                self.music_data.album_url = data['uri'].encode('ascii', 'ignore').decode('utf-8')
+                self.music_data.album_url = self.music_data.album_url.encode(
+                    'ascii', 'ignore').decode('utf-8')
 
     def play_pause(self):
         if self.status == STATE_PLAY and\

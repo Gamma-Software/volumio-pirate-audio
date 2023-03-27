@@ -1,6 +1,6 @@
 import requests
 from io import BytesIO
-from PIL import Image, ImageFilter
+from PIL import Image
 from source.debug import print_debug
 
 
@@ -11,6 +11,7 @@ class Music:
         self.album_name = album_name
         self.album_image = None
         self.album_url = album_url
+        self.need_to_be_updated = False
         self.duration = duration
 
     def copy(self):
@@ -24,7 +25,7 @@ class Music:
                 if response.status_code == 200:
                     self.album_image = Image.open(BytesIO(response.content))
                     self.album_image = self.album_image.resize(screen_size)
-                    self.album_image = self.album_image.filter(ImageFilter.BLUR)  # Blur
+                    self.need_to_be_updated = True
             except Exception as e:
                 print_debug(f"Error while downloading album art: {e}")
                 self.album_image = None
