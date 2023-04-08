@@ -99,6 +99,8 @@ class DrawUtils:
 
     def draw_text_shadowed(self, canvas: ImageDraw, text, fontsize, top, shadowoffset=1):
         """draw content"""
+        if not text:
+            return
         text_width, _, _, _ = self.text_size_on_screen(text, self.fonts['FONT_M'])
         # Get the text position from the text size on the screen
         if text_width <= self.screen.width:
@@ -114,7 +116,7 @@ class DrawUtils:
                        fontsize, self.overlay.txt_color)
 
     def draw_timebar(self, canvas: ImageDraw, seek, duration):
-        if duration == 0:
+        if not duration or duration == 0:
             return
 
         # background
@@ -139,6 +141,15 @@ class DrawUtils:
         self.draw_text(canvas, self.screen.width - text_width - 2, 206 - 2, remaining,
                        self.fonts['FONT_M'], self.overlay.txt_color)  # fill by mean
 
+    def draw_status_overlay(self, canvas: ImageDraw, player_status):
+        # Draw play/pause button
+        if player_status in ['pause', 'stop']:
+            self.draw_text(canvas, 4, 53, PLAY_BUTTON_UNICODE,
+                           self.fonts['FONT_FAS'], self.overlay.txt_color)
+        else:
+            self.draw_text(canvas, 4, 53, PAUSE_BUTTON_UNICODE,
+                           self.fonts['FONT_FAS'], self.overlay.txt_color)
+
     def draw_volume_overlay(self, canvas: ImageDraw, volume):
         if volume >= 0 and volume <= 49:
             self.draw_text(canvas, 200, 174, VOLUME_LOW_UNICODE,
@@ -153,15 +164,7 @@ class DrawUtils:
         canvas.rectangle((5, 184, 5 + int((volume/100)*(self.screen.width - 48)),
                           184 + 8), self.overlay.bar_color)  # foreground
 
-    def draw_overlay(self, canvas: ImageDraw, player_status, music_data: Music):
-        # Draw play/pause button
-        if player_status in ['pause', 'stop']:
-            self.draw_text(canvas, 4, 53, PLAY_BUTTON_UNICODE,
-                           self.fonts['FONT_FAS'], self.overlay.txt_color)
-        else:
-            self.draw_text(canvas, 4, 53, PAUSE_BUTTON_UNICODE,
-                           self.fonts['FONT_FAS'], self.overlay.txt_color)
-
+    def draw_static_player_overlay(self, canvas: ImageDraw, music_data: Music):
         # Draw menu button
         self.draw_text(canvas, 210, 53, MENU_BUTTON_UNICODE,
                        self.fonts['FONT_FAS'], self.overlay.txt_color)

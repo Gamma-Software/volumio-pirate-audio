@@ -1,6 +1,7 @@
 import sys
 import time
 import typing
+import threading
 from copy import deepcopy
 
 from source.debug import check_perfo
@@ -127,6 +128,13 @@ class Player:
     def socket_on_disconnect(self):
         self.display.display_disconnect()
 
+    def refresh_display_after_download(self):
+        self.display.display_player(self.player_state_machine.music_data,
+                                    self.player_state_machine.current_volume,
+                                    self.player_state_machine.status,
+                                    self.player_state_machine.current_position,
+                                    redraw_static=True)
+
     @check_perfo
     def socket_on_push_state(self,
                              data: typing.Tuple[typing.Dict[str, typing.Any]],
@@ -136,21 +144,38 @@ class Player:
 
         self.last_data = data
 
+        if data['service'] == "mdp":
+            return
+
         if 'album' in data.keys():
             if not data['album']:
                 data['album'] = ""  # In case of radio, album is not set
 
-        if not data['title'] and not data['artist'] \
-           and not data['album'] and len(self.player_state_machine.queue) > 0:
+        if 'title' in data.keys() and 'artist' in data.keys()\
+            and not data['title'] and not data['artist']\
+                and not data['album'] and len(self.player_state_machine.queue) > 0:
             return
 
         state = ''.join([data['status'],
                          data['title'],
                          str(data['volume']),
                          str(data['seek'])])
-        if self.player_state_machine.last_state != state and not self.menu.open:
-            self.player_state_machine.parse_data(data, self.remote_host, self.remote_port)
 
+        if self.player_state_machine.last_state != state and not self.menu.open:
+            self.player_state_machine.parse_player_data(data)
+
+        if not self.menu.open:
+            self.player_state_machine.parse_music_data(data, self.remote_host, self.remote_port,
+                                                       self.refresh_display_after_download)
+
+        if self.player_state_machine.music_changed:
+            self.display.display_player(self.player_state_machine.music_data,
+                                        self.player_state_machine.current_volume,
+                                        self.player_state_machine.status,
+                                        self.player_state_machine.current_position,
+                                        redraw_static=True)
+            self.player_state_machine.music_changed = False
+        else:
             self.display.display_player(self.player_state_machine.music_data,
                                         self.player_state_machine.current_volume,
                                         self.player_state_machine.status,

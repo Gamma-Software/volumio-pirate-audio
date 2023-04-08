@@ -92,7 +92,7 @@ class DisplayHandler:
             return
 
         # Draw static elements only if needed
-        if redraw_static or self.static_player_image is None or music_data.need_to_be_updated:
+        if redraw_static or music_data.need_to_be_updated:
             # This is the canvas on which we will draw.
             # (the current image is the default background or the album image)
             if music_data.album_image:
@@ -109,12 +109,13 @@ class DisplayHandler:
                 self.static_player_image = ImageDraw.Draw(
                     self.default_background.filter(ImageFilter.BLUR).copy(), 'RGBA')
 
-            # Draw first the background with static elements such as
-            # the title and the album name and the artist name and the menu button
-            self.draw_utils.draw_overlay(self.static_player_image, status, music_data)
+        # Draw first the background with static elements such as
+        # the title and the album name and the artist name and the menu button
+        self.draw_utils.draw_static_player_overlay(self.static_player_image, music_data)
 
         # Then draw the dynamic elements such as the volume bar and the time bar
         self.dynamic_image = ImageDraw.Draw(self.static_player_image._image.copy(), 'RGBA')
+        self.draw_utils.draw_status_overlay(self.dynamic_image, status)
         self.draw_utils.draw_volume_overlay(self.dynamic_image, current_volume)
         self.draw_utils.draw_timebar(self.dynamic_image, current_position, music_data.duration)
 
