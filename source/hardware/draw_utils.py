@@ -3,6 +3,7 @@ from source.debug import check_perfo
 from time import strftime, gmtime
 from math import ceil
 from PIL import Image, ImageDraw
+from source import SIMULATOR
 
 DEFAULT_IMAGE = 'images/default.jpg'
 PLAY_BUTTON_UNICODE = u"\uf04B"
@@ -77,11 +78,12 @@ class DrawUtils:
         # No need to draw page indicator if there is only one page
         if total_pages == 1:
             return
-        page = int(ceil((current_page + 1)/total_pages))
-        pages = int(ceil(max_pages/total_pages))
-        pagestring = ''.join([str(page), '/', str(pages)])
-        _, _, x, y = self.text_size_on_screen(pagestring, self.fonts['FONT_M'])
-        self.draw_text(canvas, x, self.screen.height - y, pagestring, self.fonts['FONT_M'])
+        page = int(ceil((float(current_page) + 1)/float(max_pages)))
+        pages = int(ceil(float(total_pages)/float(max_pages)))
+        if pages != 1:
+            pagestring = ''.join([str(page), '/', str(pages)])
+            _, hei, x, _ = self.text_size_on_screen(pagestring, self.fonts['FONT_M'])
+            self.draw_text(canvas, x, self.screen.height - hei*2, pagestring, self.fonts['FONT_M'])
 
     def draw_text(self, canvas: ImageDraw, x, y, text, fontstring=None, fillstring=(255, 255, 255)):
         """draw text"""
@@ -117,6 +119,8 @@ class DrawUtils:
 
     def draw_timebar(self, canvas: ImageDraw, seek, duration):
         if not duration or duration == 0:
+            return
+        if not seek:
             return
 
         # background
@@ -176,7 +180,11 @@ class DrawUtils:
             self.draw_text_shadowed(canvas, music_data.title, self.fonts['FONT_L'], 105, 2)
 
     def text_size_on_screen(self, text, font):
-        """helper for width and height of text"""
+        """
+        helper for width and height of text
+        return [width, height, x, y]
+        x and y are the coordinates of center of the text
+        """
         bbox = ImageDraw.Draw(Image.new('RGB', (1, 1))).textbbox((0, 0), text, font=font)
         len1 = bbox[2] - bbox[0]
         hei1 = bbox[3] - bbox[1]
@@ -185,7 +193,6 @@ class DrawUtils:
         y = (self.screen.height - hei1)//2
         return [len1, hei1, x, y]
 
-    @check_perfo
     def draw_menu_content(self, canvas: ImageDraw, text, start, marked, listmax1):
         if text == []:
             return

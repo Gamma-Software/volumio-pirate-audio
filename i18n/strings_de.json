@@ -10,6 +10,7 @@
   "DISPLAY": {
     "MUSICSELECTION": "Musikauswahl",
     "NO_QUEUE": "Keine Warteschlange",
+    "NO_SEEK": "Kein Suchlauf",
     "CANCEL": "Abbrechen",
     "SHUTDOWN": "Herunterfahren?",
     "REBOOT": "Neustart Pi?",

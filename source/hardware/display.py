@@ -19,6 +19,7 @@ class DisplayHandler:
         self.messages = messages
 
         # screen
+        self.last_refresh = time()
         self.max_list = max_list
         self.screen = ScreenData()
         self.overlay = OverlayData()
@@ -125,6 +126,9 @@ class DisplayHandler:
     @check_perfo
     def display_menu(self, choices, marked, start, icons='nav', redraw_static=False,
                      use_last_image=False):
+        # If choices is a string, we convert it to a list
+        if isinstance(choices, str):
+            choices = [choices]
         if use_last_image:
             self.sendtodisplay(self.last_player_image)
             return
@@ -147,6 +151,8 @@ class DisplayHandler:
         elif icons == 'info':
             # Fontawesome symbol info
             self.draw_utils.draw_symbol(self.static_menu_image, 10, 10, u"\uf05a")
+            # Fontawesome symbol back
+            self.draw_utils.draw_symbol(self.static_menu_image, 0, 170, u"\uf0e2")
         elif icons == 'seek':
             # Fontawesome symbol ok
             self.draw_utils.draw_symbol(self.static_menu_image, 0, 50, u"\uf14a")

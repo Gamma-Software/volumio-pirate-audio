@@ -46,14 +46,15 @@ class StateImp(State):
         self.cursor = 0
 
     def run(self):
-        print_debug("Run -> Menu: " + self.__class__.__name__)
+        # print_debug("Run -> Menu: " + self.__class__.__name__)
+        pass
 
     def next(self) -> State:
         pass
 
     def up_down(self, input):
         if self.choices == []:
-            print_debug("No choices available, cannot move cursor")
+            # print_debug("No choices available, cannot move cursor")
             return
         if input == "up":
             self.cursor -= 1
@@ -97,7 +98,7 @@ class MainMenu(StateImp):
                         "Alarm",
                         self.messages['DISPLAY']['SHUTDOWN'],
                         self.messages['DISPLAY']['REBOOT']]
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
@@ -155,7 +156,7 @@ class BrowseLibraryMenu(StateImp):
                 self.uri.append(data['uri'])
 
         self.display.display_menu_content(self.choices, self.cursor)
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
@@ -209,7 +210,7 @@ class BrowseSourceMenu(StateImp):
         self.choices = [data[i]['name'] for i in range(len(data))]
         self.uri = [data[i]['uri'] for i in range(len(data))]
         self.display.display_menu_content(self.choices, self.cursor)
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
@@ -232,21 +233,27 @@ class SeekMenu(StateImp):
         super().__init__(messages, socket, display)
         self.current_duration = None
         self.seek = None
+        self.no_seek = False
         self.socket.on('pushState', self.update_duration)
 
     def update_display(self):
+        if self.no_seek:
+            self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['NO_SEEK'], 0, 'info')
+            return
         seek_msg = time.strftime("%M:%S", time.gmtime(
             int(float(self.seek/1000))))
         duration_msg = time.strftime("%M:%S", time.gmtime(
             self.current_duration))
 
         self.display.display_menu_content([MESSAGES_DATA['DISPLAY']['SEEK'],
-                                   ''.join([seek_msg, ' / ', duration_msg])],
-                                  self.cursor, 'seek')
+                                           ''.join([seek_msg, ' / ', duration_msg])],
+                                          self.cursor, 'seek')
 
     def update_duration(self, data):
         if 'duration' not in data:
             return
+        if 'service' in data and data['service'] == 'webradio':
+            self.no_seek = True
         self.current_duration = data['duration']
         if self.current_duration != 0:
             if 'seek' in data and data['seek'] is not None:
@@ -257,7 +264,6 @@ class SeekMenu(StateImp):
         super().run()
         # Update data
         self.socket.emit('getState', '', self.update_duration)
-        self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0, "seek")
 
     def next(self) -> State:
         self.socket.emit('seek', int(float(self.seek/1000)))
@@ -265,7 +271,7 @@ class SeekMenu(StateImp):
 
     def up_down(self, input):
         super().up_down(input)
-        if not self.current_duration and not self.seek:
+        if not self.current_duration and not self.seek or self.no_seek:
             return
         step = 30000  # 30 seconds
         if input == 'up':
@@ -298,7 +304,7 @@ class PrevNextMenu(StateImp):
             self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['NO_QUEUE'], 0, 'info')
             return
         self.display.display_menu_content(self.choices, 0, 'seek')
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
@@ -353,10 +359,9 @@ class AlarmMenu(StateImp):
 
     def update_data(self, data):
         print(data)
-        self.choices = [alarm['name'] for alarm in data]
+        self.choices = [alarm['time'] for alarm in data]
 
         self.waiting_for_data = False
-        #self.choices = [self.messages['DISPLAY']['REBOOT'], self.messages]
 
     def run(self):
         super().run()
@@ -383,7 +388,7 @@ class RebootMenu(StateImp):
     def __init__(self, messages, socket, display):
         super().__init__(messages, socket, display)
         self.choices = [self.messages['DISPLAY']['REBOOT'], self.messages['DISPLAY']['CANCEL']]
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()
@@ -410,7 +415,7 @@ class ShutdownMenu(StateImp):
     def __init__(self, messages, socket, display):
         super().__init__(messages, socket, display)
         self.choices = [self.messages['DISPLAY']['SHUTDOWN'], self.messages['DISPLAY']['CANCEL']]
-        print_debug("Choices: \n\t" + "\n\t".join(self.choices))
+        # print_debug("Choices: \n\t" + "\n\t".join(self.choices))
 
     def run(self):
         super().run()

@@ -18,7 +18,6 @@ from source.utils import MESSAGES_DATA, CONFIG_DATA
 SCRIPT_ROOT_PATH = Path(__file__).parent.parent.absolute()
 
 
-@check_perfo
 def init():
     fonts = {
         "FONT_S": ImageFont.truetype(

@@ -20,9 +20,7 @@ class Music:
                      self.album_url, self.duration, self.callback)
 
     def equal(self, other):
-        return self.title == other.title and self.artist == other.artist \
-            and self.album_name == other.album_name and self.album_url == other.album_url\
-            and self.duration == other.duration
+        return self.title == other.title
 
     def download_album_image(self, screen_size):
         print_debug(f"Downloading album art from {self.album_url}")
