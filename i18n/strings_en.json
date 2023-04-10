@@ -16,6 +16,7 @@
     "SHUTINDOWN": "Shuting down",
     "REBOOT": "Reboot the Pi ?",
     "REBOOTING": "Rebooting",
+    "ALARM_REMOVED": "Removed",
     "LOSTCONNECTION": "Lost connection",
     "EMPTY": "empty",
     "WAIT": "please wait",
