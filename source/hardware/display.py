@@ -20,6 +20,7 @@ class DisplayHandler:
 
         # screen
         self.last_refresh = time.time()
+        self.sleep_mode = True
         self.max_list = max_list
         self.screen = ScreenData()
         self.overlay = OverlayData()
@@ -49,30 +50,38 @@ class DisplayHandler:
     def clean(self):
         pass
 
+    def sleep(self):
+        if not self.sleep_mode:
+            print("Going to sleep")
+            self.display.set_backlight(False)
+            self.sleep_mode = True
+
+    def wake_up(self):
+        if self.sleep_mode:
+            print("Wake up")
+            self.display.set_backlight(True)
+            self.sleep_mode = False
+
     def display_connect(self):
         """display connect"""
-        self.display.set_backlight(True)
+        self.wake_up()
 
     def display_disconnect(self):
         """display disconnect"""
-        self.display.set_backlight(True)
+        self.wake_up()
         self.display_menu(self.messages["DISPLAY"]['LOSTCONNECTION'], 0, 0, 'info')
 
     def display_menu_content(self, menu_list, cursor, icon='nav'):
         """display menu"""
-        self.display.set_backlight(True)
-
         if len(menu_list) == 0:
             menu_list = self.messages['DISPLAY']['EMPTY']
         self.display_menu(menu_list, cursor, cursor, icon)
 
     def display_shutdown(self):
-        self.display.set_backlight(True)
         # TODO : add a shutdown message
         self.display_menu(['executing:', 'shutdown'], 0, 0, 'info')
 
     def display_reboot(self):
-        self.display.set_backlight(True)
         # TODO : add a reboot message
         self.display_menu(['executing:', 'reboot'], 0, 0, 'info')
 

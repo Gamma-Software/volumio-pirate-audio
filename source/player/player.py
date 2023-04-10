@@ -47,6 +47,7 @@ class Player:
             self.display.display.display_callback(simulator.display_image)
         self.buttons = buttons
         self.buttons.add_callbacks(self.button_on_click)
+        self.last_time__button_pressed = time.time()
         self.last_data = None
         self.player_state_machine = PlayerStateMachine()
 
@@ -68,8 +69,9 @@ class Player:
                 simulator.start(self.socket)
             else:
                 while True:
-                    time.sleep(1)
-                    continue
+                    # TODO : add config
+                    if time.time() - self.last_time__button_pressed > 60:
+                        self.display.sleep()
                     if self.player_state_machine.status == STATE_PLAY:
                         current_time = time.time()
                         self.refresh()
@@ -83,6 +85,11 @@ class Player:
     def button_on_click(self, button):
         # If the menu is closed, we are in the player
         if not self.menu.open:  # In Player
+            self.last_time__button_pressed = time.time()
+            if self.display.sleep_mode:
+                self.display.wake_up()
+                return  # Force the user to click again to do something
+
             if button == 'b':
                 self.player_state_machine.volume_down()
                 self.socket.emit('volume', '-')

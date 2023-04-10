@@ -29,7 +29,6 @@ class ScreenData:
         self.second_image = self.default_background.copy()
         self.third_image = self.default_background.copy()
         self.image_check = ''
-        self.last_refresh = 0
 
 
 class OverlayData:
