@@ -263,3 +263,48 @@ class DrawUtils:
         minute_x = center[0] + int(minute_length * math.cos(minute_angle))
         minute_y = center[1] + int(minute_length * math.sin(minute_angle))
         canvas.line((center[0], center[1], minute_x, minute_y), fill='white', width=3)
+
+    def draw_futuristic_clock(self, canvas: ImageDraw):
+        # Get the center of the image
+        center = (120, 120)
+
+        # Define the radius of the clock
+        radius = 100
+
+        # Define the colors for the clock
+        outer_color = '#00ff00'  # Green
+        inner_color = '#00ffff'  # Cyan
+        hour_color = '#ff0000'   # Red
+        minute_color = '#ffffff'  # White
+
+        # Draw the outer ring of the clock
+        canvas.ellipse((center[0]-radius, center[1]-radius,
+                        center[0]+radius, center[1]+radius), outline=outer_color, width=10)
+
+        # Draw the inner ring of the clock
+        canvas.ellipse((center[0]-radius+20, center[1]-radius+20,
+                        center[0]+radius-20, center[1]+radius-20), outline=inner_color, width=5)
+
+        # Draw the hour marks
+        for i in range(1, 13):
+            angle = math.radians(i * 30 - 90)
+            x = center[0] + int(radius * math.cos(angle))
+            y = center[1] + int(radius * math.sin(angle))
+            canvas.ellipse((x-5, y-5, x+5, y+5), fill=inner_color)
+
+        # Get the current time
+        now = datetime.datetime.now()
+
+        # Draw the hour hand
+        hour_angle = math.radians((now.hour % 12) * 30 - 90)
+        hour_length = radius * 0.5
+        hour_x = center[0] + int(hour_length * math.cos(hour_angle))
+        hour_y = center[1] + int(hour_length * math.sin(hour_angle))
+        canvas.line((center[0], center[1], hour_x, hour_y), fill=hour_color, width=7)
+
+        # Draw the minute hand
+        minute_angle = math.radians(now.minute * 6 - 90)
+        minute_length = radius * 0.8
+        minute_x = center[0] + int(minute_length * math.cos(minute_angle))
+        minute_y = center[1] + int(minute_length * math.sin(minute_angle))
+        canvas.line((center[0], center[1], minute_x, minute_y), fill=minute_color, width=3)
