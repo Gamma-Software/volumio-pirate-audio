@@ -16,7 +16,7 @@ class PlayerStateMachine:
         self.current_volume = 50  # by default the volume is 50%
         self.current_position = 0  # by default the position is 0
         self.elapsed_time = 0
-        self.music_data = Music(None, None, None, None, None, None)  # TODO
+        self.music_data = Music(None, None, None, None, None, None, None, None, None)  # TODO
         self.music_changed = False
         self.queue = []
 
@@ -35,7 +35,7 @@ class PlayerStateMachine:
 
     def parse_music_data(self, data, remote_host, remote_port, callback):
         # If the music changed, we reset the music data
-        new_music = Music(None, None, None, None, None, callback)
+        new_music = Music(None, None, None, None, None, None, None, None, callback)
 
         if 'duration' in data:
             new_music.duration = data['duration']
@@ -49,6 +49,12 @@ class PlayerStateMachine:
             new_music.artist = data['artist']
         if 'album' in data.keys():
             new_music.album_name = data['album']
+        if 'service' in data.keys():
+            new_music.service = data['service']
+        if 'type' in data.keys():
+            new_music.type = data['type']
+        if 'uri' in data.keys():
+            new_music.uri = data['uri']
         if 'albumart' in data.keys():
             new_music.album_url = data['albumart']
             if "http" not in new_music.album_url:

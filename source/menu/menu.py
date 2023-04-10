@@ -30,13 +30,11 @@ class Menu:
         if self.current_state.close_on == "SleepTimerMenu":
             self.start_sleep_timer()
         if self.current_state.close_on == "ShutdownMenu":
-            # Freeze the display
-            pass  # TODO
+            # Freeze the display on shutdown screen
+            self.display.display_menu(self.messages["DISPLAY"]['SHUTINDOWN'], 0, 0, 'info')
         if self.current_state.close_on == "RebootMenu":
-            # Freeze the display
-            pass  # TODO
-
-        # Else, close without actions
+            # Freeze the display on reboot screen
+            self.display.display_menu(self.messages["DISPLAY"]['REBOOTING'], 0, 0, 'info')
 
     def start_sleep_timer(self):
         self.socket.emit('setSleep')  # TODO: add timer

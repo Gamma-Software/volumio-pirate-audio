@@ -1,8 +1,8 @@
+import time
 import threading
 from source.player.music import Music
 from source.hardware.draw_utils import DrawUtils, ScreenData, OverlayData
 from source.debug import check_perfo
-from time import time
 from PIL import Image, ImageDraw, ImageStat, ImageFilter
 
 from source import SIMULATOR
@@ -19,7 +19,7 @@ class DisplayHandler:
         self.messages = messages
 
         # screen
-        self.last_refresh = time()
+        self.last_refresh = time.time()
         self.max_list = max_list
         self.screen = ScreenData()
         self.overlay = OverlayData()
@@ -52,7 +52,6 @@ class DisplayHandler:
     def display_connect(self):
         """display connect"""
         self.display.set_backlight(True)
-        self.display_menu(self.messages['DISPLAY']['WAIT'], 0, 0, 'info')
 
     def display_disconnect(self):
         """display disconnect"""
@@ -82,7 +81,7 @@ class DisplayHandler:
 
     def sendtodisplay(self, image_to_display: Image):
         """send img to display"""
-        self.last_refresh = time()
+        self.last_refresh = time.time()
         self.display.display(image_to_display._image)
 
     @check_perfo

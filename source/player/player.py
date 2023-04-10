@@ -37,6 +37,7 @@ class Player:
                  socket,
                  display: DisplayHandler, buttons: ButtonHandler, menu: Menu,
                  host="localhost", port=3000):
+        self.firt_run = True  # Check if it is the first run of the player
         self.socket = socket
         self.remote_host = host
         self.remote_port = port
@@ -105,7 +106,19 @@ class Player:
 
             if button == 'a':
                 new_state = self.player_state_machine.play_pause()
-                self.socket.emit(new_state)
+                if new_state == 'play' and self.firt_run:
+                    # If this is the first time we play, we need to replace the queue
+                    # otherwise, when the app starts and a music is in the queue, it will not play
+                    self.socket.emit('replaceAndPlay', {
+                        "service": self.player_state_machine.music_data.service,
+                        "type": self.player_state_machine.music_data.type,
+                        "title": self.player_state_machine.music_data.title,
+                        "uri": self.player_state_machine.music_data.uri
+                    })
+                    self.firt_run = False
+                    del self.firt_run  # Not needed anymore
+                else:
+                    self.socket.emit(new_state)
                 # time.sleep(0.1)
                 # No need to wait for the getState, it will be updated by the pushState
                 # data_to_send = deepcopy(self.last_data)
@@ -120,9 +133,12 @@ class Player:
             if not self.menu.open:
                 if self.menu.current_state.close_on is None:
                     return
+                elif self.menu.current_state.close_on == "ShutdownMenu" or \
+                     self.menu.current_state.close_on == "RebootMenu":
+                    self.clean()
                 # self.socket_on_push_state(self.last_data, True)
                 self.register_events()  # Get back the callbacks
-                self.socket.emit('getState', '', self.socket_on_push_state)
+                self.socket_on_push_state(self.last_data, True)
 
     def register_events(self):
         self.socket.on('pushState', self.socket_on_push_state)
@@ -151,20 +167,20 @@ class Player:
                     "trackType", "seek", "duration", "random", "repeat", "repeatSingle", "consume",
                     "volume", "dbVolume", "mute", "disableVolumeControl", "stream", "updatedb",
                     "volatile", "service"]:
-            if key not in data.keys() or data[key] == "":
-                data[key] = None
+            if key not in data.keys() or data[key] is None:
+                data[key] = ""
 
         # Do not take the seek data into account when the radio is playing -> set it to 0
         if data['service'] == "webradio" and data['seek'] != 0:
             data['seek'] = 0
-        if 'artist' not in data or (data['service'] == "webradio" and data['artist'] != None):
-            data['artist'] = None
+        if 'artist' not in data or (data['service'] == "webradio" and data['artist'] != ""):
+            data['artist'] = ""
         if 'artist' in data and data['artist'] == "":
-            data['artist'] = None
+            data['artist'] = ""
         if 'title' in data and data['title'] == "":
-            data['title'] = None
+            data['title'] = ""
         if 'album' in data and data['album'] == "":
-            data['album'] = None
+            data['album'] = ""
         # Remove bitrate, not used
         if 'bitrate' in data:
             del data['bitrate']
@@ -198,7 +214,7 @@ class Player:
 
         if self.compare_data(data, self.last_data) and not force:
             return
-        #print("Received data: {}".format(data))
+        print("Received data: {}".format(data))
         self.last_data = data
 
         if data['service'] == "mdp":
@@ -243,6 +259,7 @@ class Player:
 
     def clean(self):
         """cleanes up at exit, even if service is stopped"""
+        time.sleep(1)
         self.display.clean()
         self.buttons.remove_all_listeners()
         self.menu.remove_all_listeners()

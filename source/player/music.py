@@ -5,19 +5,23 @@ from source.debug import print_debug
 
 
 class Music:
-    def __init__(self, title, artist, album_name, album_url, duration, callback):
+    def __init__(self, title, artist, album_name, album_url, duration, service, uri, type, callback):
         self.title = title
         self.artist = artist
         self.album_name = album_name
         self.album_image = None
         self.album_url = album_url
+        self.uri = uri
+        self.type = type
+        self.service = service
         self.need_to_be_updated = False
         self.duration = duration
         self.callback = callback
 
     def copy(self):
         return Music(self.title, self.artist, self.album_name,
-                     self.album_url, self.duration, self.callback)
+                     self.album_url, self.duration, self.service,
+                     self.uri, self.type, self.callback)
 
     def equal(self, other):
         return self.title == other.title
