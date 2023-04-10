@@ -142,6 +142,10 @@ class Player:
 
     def register_events(self):
         self.socket.on('pushState', self.socket_on_push_state)
+        self.socket.on('pushToastMessage', self.socket_on_push_toast_message)
+
+    def socket_on_push_toast_message(self, data):
+        print_debug("Toast message received: {}".format(data))
 
     def socket_on_disconnect(self):
         self.display.display_disconnect()

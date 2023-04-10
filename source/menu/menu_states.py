@@ -378,15 +378,16 @@ class AlarmMenu(StateImp):
         super().run()
         self.waiting_for_data = True
         self.socket.emit('getAlarms', self.update_data)
-        self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
         if self.waiting_for_data:
             return None
         if self.cursor == len(self.choices):
-            return AlarmAddSubMenu(MESSAGES_DATA, self.socket, self.display)
+            print_debug("Add alarm not implemented yet")
+            # return AlarmAddSubMenu(MESSAGES_DATA, self.socket, self.display)
+            return None
         return AlarmEditSubMenu(MESSAGES_DATA, self.socket, self.display,
-                                self.alarms_data[self.cursor])
+                                self.alarms_data, self.cursor)
 
     def up_down(self, input):
         super().up_down(input)
@@ -399,16 +400,17 @@ class AlarmMenu(StateImp):
 
 
 class AlarmEditSubMenu(StateImp):
-    def __init__(self, messages, socket, display, alarm_data):
+    def __init__(self, messages, socket, display, alarms_data, alarm_id):
         super().__init__(messages, socket, display)
-        self.choices = ["Remove alarm [-]"]
-        self.alarm_data = alarm_data
+        self.alarms_data = alarms_data
+        self.alarm_id = alarm_id
+        self.alarm_data = self.alarms_data[alarm_id]
         self.removed = False
-        self.update_data(alarm_data)
+        self.update_data()
 
-    def update_data(self, data):
-        self.choices.insert(0, f'[{data["time_parsed"]}]: {data["playlist"]}')
-        self.update_choices(data["enabled"])
+    def update_data(self):
+        self.choices.insert(0, f'[{self.alarm_data["time_parsed"]}]: {self.alarm_data["playlist"]}')
+        self.update_choices(self.alarm_data["enabled"])
 
     def update_choices(self, enable):
         if enable:
@@ -436,59 +438,15 @@ class AlarmEditSubMenu(StateImp):
             return
         if self.cursor == 1:
             self.alarm_data["enabled"] = not self.alarm_data["enabled"]
-            self.socket.emit('setAlarm', {
-                'id': self.alarm_data["id"],
-                'enabled': self.alarm_data["enabled"],
-                'time': self.alarm_data["time_parsed"],
-                'playlist': self.alarm_data["playlist"]
-            })
+            self.socket.emit('saveAlarm', [{
+                'id': alarm["id"],
+                'enabled': alarm["enabled"],
+                'time': alarm["time"],
+                'playlist': alarm["playlist"]
+            } for alarm in self.alarms_data])
             # Update the alarm state on display
             self.choices.pop(1)
             self.update_choices(self.alarm_data["enabled"])
-            self.display.display_menu_content(self.choices, self.cursor)
-        elif self.cursor == 2:
-            self.removed = True
-            self.socket.emit('removeAlarm', self.alarm_data["id"])
-            self.display.display_menu(self.messages["DISPLAY"]['ALARM_REMOVED'], 0, 0, 'info')
-
-
-class AlarmAddSubMenu(StateImp):
-    def __init__(self, messages, socket, display):
-        super().__init__(messages, socket, display)
-        self.choices = ["Remove alarm [-]"]
-
-    def update_data(self, data):
-        self.choices.insert(0, f'[{data["time_parsed"]}]: {data["playlist"]}')
-        if data["enabled"]:
-            self.choices.insert(1, "Disable alarm")
-        else:
-            self.choices.insert(1, "Enable alarm")
-        self.display.display_menu_content(self.choices, self.cursor)
-
-    def run(self):
-        super().run()
-        self.waiting_for_data = True
-        self.socket.emit('getAlarms', self.update_data)
-        self.display.display_menu_content(self.choices, self.cursor)
-
-    def next(self) -> State:
-        return None  # From here, the user can only go back
-
-    def up_down(self, input):
-        super().up_down(input)
-        if self.waiting_for_data:
-            return None
-        self.display.display_menu_content(self.choices, self.cursor)
-
-    def select(self):
-        if self.cursor == 1:
-            self.alarm_data["enabled"] = not self.alarm_data["enabled"]
-            self.socket.emit('setAlarm', {
-                'id': self.alarm_data["id"],
-                'enabled': self.alarm_data["enabled"],
-                'time': self.alarm_data["time"],
-                'playlist': self.alarm_data["uriplaylist"]
-            })
             self.display.display_menu_content(self.choices, self.cursor)
 
 
