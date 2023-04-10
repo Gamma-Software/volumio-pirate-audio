@@ -18,7 +18,7 @@ class ButtonHandler:
         try:
             for pin in self.button_mapping.values():
                 GPIO.setup(pin, GPIO.IN, GPIO.PUD_UP)
-                GPIO.add_event_detect(pin, GPIO.FALLING, self.handle_button, bouncetime=250)
+                GPIO.add_event_detect(pin, GPIO.FALLING, self.handle_button, bouncetime=500)
                 time.sleep(0.1)  # Wait a bit
         except (ValueError, RuntimeError) as e:
             print('ERROR at setup channel:', e)
@@ -41,6 +41,7 @@ class ButtonHandler:
         GPIO.cleanup(list(self.button_mapping.values()))
 
     def handle_button(self, pin):
+        print('Button pressed: ', pin)
         # Avoid the fact that the callback list may change during the loop
         current_callbacks = self.callbacks.copy()
         for call in current_callbacks:

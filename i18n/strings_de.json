@@ -10,9 +10,12 @@
   "DISPLAY": {
     "MUSICSELECTION": "Musikauswahl",
     "NO_QUEUE": "Keine Warteschlange",
+    "NO_SEEK": "Kein Suchlauf",
     "CANCEL": "Abbrechen",
     "SHUTDOWN": "Herunterfahren?",
+    "SHUTINDOWN": "Herunterfahren",
     "REBOOT": "Neustart Pi?",
+    "REBOOTING": "Neustart Pi",
     "LOSTCONNECTION": "Verbindung verloren",
     "EMPTY": "leer",
     "WAIT": "bitte warten",
