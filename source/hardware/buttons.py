@@ -41,7 +41,7 @@ class ButtonHandler:
         GPIO.cleanup(list(self.button_mapping.values()))
 
     def handle_button(self, pin):
-        print('Button pressed: ', pin)
+        #print('Button pressed: ', pin)
         # Avoid the fact that the callback list may change during the loop
         current_callbacks = self.callbacks.copy()
         for call in current_callbacks:

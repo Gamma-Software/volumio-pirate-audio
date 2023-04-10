@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from abc import ABC, abstractmethod
 
 from source.debug import print_debug
@@ -161,7 +162,6 @@ class BrowseLibraryMenu(StateImp):
     def run(self):
         super().run()
         self.socket.emit('browseLibrary', {'uri': self.selected_uri})
-        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         uri = self.uri[self.cursor]
@@ -215,7 +215,6 @@ class BrowseSourceMenu(StateImp):
     def run(self):
         super().run()
         self.socket.emit('getBrowseSources', '', self.update_data)
-        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         return BrowseLibraryMenu(self.uri[self.cursor], MESSAGES_DATA, self.socket, self.display)
@@ -310,7 +309,6 @@ class PrevNextMenu(StateImp):
         super().run()
         self.waiting_for_data = True
         self.socket.emit('getQueue', self.update_data)
-        #self.display.display_menu_content(MESSAGES_DATA['DISPLAY']['WAIT'], 0)
 
     def next(self) -> State:
         """processes prev/next commands"""
@@ -356,10 +354,60 @@ class AlarmMenu(StateImp):
         super().__init__(messages, socket, display)
         self.waiting_for_data = True
         self.socket.on('pushAlarm', self.update_data)
+        self.choices = ["Add alarm [+]"]
 
     def update_data(self, data):
-        print(data)
-        self.choices = [alarm['time'] for alarm in data]
+        # Parse the time data from YYYY-MM-DDTHH:MM:SSZ to HH:MM
+        for alarm in data:
+            # Parse the string into a datetime object
+            time_obj = datetime.fromisoformat(alarm['time'][:-1])
+
+            # Extract the hour and minute from the datetime object
+            hour = time_obj.hour
+            minute = time_obj.minute
+            self.choices.insert(0, f'{hour}:{minute}')
+        self.display.display_menu_content(self.choices, self.cursor)
+
+        self.waiting_for_data = False
+
+    def run(self):
+        super().run()
+        self.waiting_for_data = True
+        self.socket.emit('getAlarms', self.update_data)
+        self.display.display_menu_content(self.choices, self.cursor)
+
+    def next(self) -> State:
+        if self.waiting_for_data:
+            return None
+        return MenuClosed(AlarmMenu, MESSAGES_DATA, self.socket, self.display)
+
+    def up_down(self, input):
+        super().up_down(input)
+        if self.waiting_for_data:
+            return None
+        self.display.display_menu_content(self.choices, self.cursor)
+
+    def select(self):
+        pass
+
+class AlarmSubMenu(StateImp):
+    def __init__(self, messages, socket, display):
+        super().__init__(messages, socket, display)
+        self.waiting_for_data = True
+        self.socket.on('pushAlarm', self.update_data)
+        self.choices = ["Add alarm [+]"]
+
+    def update_data(self, data):
+        # Parse the time data from YYYY-MM-DDTHH:MM:SSZ to HH:MM
+        for alarm in data:
+            # Parse the string into a datetime object
+            time_obj = datetime.fromisoformat(alarm['time'][:-1])
+
+            # Extract the hour and minute from the datetime object
+            hour = time_obj.hour
+            minute = time_obj.minute
+            self.choices.insert(0, f'{hour}:{minute}')
+        self.display.display_menu_content(self.choices, self.cursor)
 
         self.waiting_for_data = False
 
