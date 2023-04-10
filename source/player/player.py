@@ -50,6 +50,7 @@ class Player:
         self.last_time__button_pressed = time.time()
         self.last_data = None
         self.player_state_machine = PlayerStateMachine()
+        self.display_clock = False
 
         self.socket.once('connect', self.register_events)
         self.socket.on('disconnect', self.socket_on_disconnect)
@@ -70,8 +71,12 @@ class Player:
             else:
                 while True:
                     # TODO : add config
-                    if time.time() - self.last_time__button_pressed > 60:
+                    if not self.display.sleep_mode and time.time() - self.last_time__button_pressed > 60:
                         self.display.sleep()
+                        self.display.display_clock()
+                    if self.display_clock and time.time() - self.last_time__button_pressed > 5:
+                        self.display.sleep()
+                        self.display.display_clock()
                     if self.player_state_machine.status == STATE_PLAY:
                         current_time = time.time()
                         self.refresh()
@@ -88,7 +93,14 @@ class Player:
             self.last_time__button_pressed = time.time()
             if self.display.sleep_mode:
                 self.display.wake_up()
-                return  # Force the user to click again to do something
+                self.display.display_clock()
+                self.display_clock = True
+                return  # Force the user to click twice to do something
+            if self.display_clock:
+                self.display_clock = False
+                self.display.sleep_mode = False
+                self.socket_on_push_state(self.last_data, True)
+                return
 
             if button == 'b':
                 self.player_state_machine.volume_down()

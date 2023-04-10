@@ -73,15 +73,21 @@ class DisplayHandler:
 
     def display_menu_content(self, menu_list, cursor, icon='nav'):
         """display menu"""
+        if self.sleep_mode:
+            return  # No need to refresh the screen if we are in sleep mode
         if len(menu_list) == 0:
             menu_list = self.messages['DISPLAY']['EMPTY']
         self.display_menu(menu_list, cursor, cursor, icon)
 
     def display_shutdown(self):
+        if self.sleep_mode:
+            return  # No need to refresh the screen if we are in sleep mode
         # TODO : add a shutdown message
         self.display_menu(['executing:', 'shutdown'], 0, 0, 'info')
 
     def display_reboot(self):
+        if self.sleep_mode:
+            return  # No need to refresh the screen if we are in sleep mode
         # TODO : add a reboot message
         self.display_menu(['executing:', 'reboot'], 0, 0, 'info')
 
@@ -99,6 +105,8 @@ class DisplayHandler:
         if use_last_image:
             self.sendtodisplay(self.last_player_image)
             return
+        if self.sleep_mode:
+            return  # No need to refresh the screen if we are in sleep mode
 
         # Draw static elements only if needed
         if redraw_static or music_data.need_to_be_updated:
@@ -134,6 +142,8 @@ class DisplayHandler:
     @check_perfo
     def display_menu(self, choices, marked, start, icons='nav', redraw_static=False,
                      use_last_image=False):
+        if self.sleep_mode:
+            return  # No need to refresh the screen if we are in sleep mode
         # If choices is a string, we convert it to a list
         if isinstance(choices, str):
             choices = [choices]
@@ -178,3 +188,9 @@ class DisplayHandler:
 
         self.sendtodisplay(self.dynamic_image)
         self.last_menu_image = self.dynamic_image._image.copy()
+
+    def display_clock(self):
+        image = ImageDraw.Draw(
+            Image.new('RGB', (self.screen.width, self.screen.height), color='black'))
+        self.draw_utils.draw_clock(image)
+        self.sendtodisplay(image)

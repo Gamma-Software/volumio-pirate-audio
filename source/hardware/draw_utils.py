@@ -1,3 +1,5 @@
+import math
+import datetime
 from source.player.music import Music
 from source.debug import check_perfo
 from time import strftime, gmtime
@@ -230,3 +232,34 @@ class DrawUtils:
             # Rectangle behind text
             canvas.rectangle((x, y, x + len1, y + hei1), (255, 255, 255))
             self.draw_text(canvas, x, y, text, self.fonts['FONT_M'], (0, 0, 0))
+
+    def draw_clock(self, canvas: ImageDraw):
+        # Get the center of the image
+        center = (120, 120)
+
+        # Define the radius of the clock
+        radius = 100
+
+        # Draw the hour marks
+        for i in range(1, 13):
+            angle = math.radians(i * 30 - 90)
+            x = center[0] + int(radius * math.cos(angle))
+            y = center[1] + int(radius * math.sin(angle))
+            canvas.ellipse((x-5, y-5, x+5, y+5), fill='red')
+
+        # Get the current time
+        now = datetime.datetime.now()
+
+        # Draw the hour hand
+        hour_angle = math.radians((now.hour % 12) * 30 - 90)
+        hour_length = radius * 0.5
+        hour_x = center[0] + int(hour_length * math.cos(hour_angle))
+        hour_y = center[1] + int(hour_length * math.sin(hour_angle))
+        canvas.line((center[0], center[1], hour_x, hour_y), fill='white', width=5)
+
+        # Draw the minute hand
+        minute_angle = math.radians(now.minute * 6 - 90)
+        minute_length = radius * 0.8
+        minute_x = center[0] + int(minute_length * math.cos(minute_angle))
+        minute_y = center[1] + int(minute_length * math.sin(minute_angle))
+        canvas.line((center[0], center[1], minute_x, minute_y), fill='white', width=3)
