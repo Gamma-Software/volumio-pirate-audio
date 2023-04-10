@@ -49,6 +49,7 @@ class Menu:
             self.current_state = self.current_state.next()
             if self.current_state is None:
                 print("Error: cannot go to next state")
+                self.current_state = self.last_states.pop()
                 return
             self.current_state.run()
             if isinstance(self.current_state, states.MenuClosed):

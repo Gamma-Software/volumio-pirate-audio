@@ -355,17 +355,21 @@ class AlarmMenu(StateImp):
         self.waiting_for_data = True
         self.socket.on('pushAlarm', self.update_data)
         self.choices = ["Add alarm [+]"]
+        self.alarms_data = []
 
     def update_data(self, data):
         # Parse the time data from YYYY-MM-DDTHH:MM:SSZ to HH:MM
-        for alarm in data:
+        self.alarms_data = data
+        self.choices = ["Add alarm [+]"]
+        for id, alarm in enumerate(data):
             # Parse the string into a datetime object
             time_obj = datetime.fromisoformat(alarm['time'][:-1])
 
             # Extract the hour and minute from the datetime object
             hour = time_obj.hour
             minute = time_obj.minute
-            self.choices.insert(0, f'{hour}:{minute}')
+            self.alarms_data[id]['time_parsed'] = f'{hour}:{minute}'
+            self.choices.insert(0, f'[{hour}:{minute}]: {self.alarms_data[id]["playlist"]}')
         self.display.display_menu_content(self.choices, self.cursor)
 
         self.waiting_for_data = False
@@ -379,7 +383,10 @@ class AlarmMenu(StateImp):
     def next(self) -> State:
         if self.waiting_for_data:
             return None
-        return MenuClosed(AlarmMenu, MESSAGES_DATA, self.socket, self.display)
+        if self.cursor == len(self.choices):
+            return AlarmAddSubMenu(MESSAGES_DATA, self.socket, self.display)
+        return AlarmEditSubMenu(MESSAGES_DATA, self.socket, self.display,
+                                self.alarms_data[self.cursor])
 
     def up_down(self, input):
         super().up_down(input)
@@ -390,26 +397,73 @@ class AlarmMenu(StateImp):
     def select(self):
         pass
 
-class AlarmSubMenu(StateImp):
+
+class AlarmEditSubMenu(StateImp):
+    def __init__(self, messages, socket, display, alarm_data):
+        super().__init__(messages, socket, display)
+        self.choices = ["Remove alarm [-]"]
+        self.alarm_data = alarm_data
+        self.removed = False
+        self.update_data(alarm_data)
+
+    def update_data(self, data):
+        self.choices.insert(0, f'[{data["time_parsed"]}]: {data["playlist"]}')
+        self.update_choices(data["enabled"])
+
+    def update_choices(self, enable):
+        if enable:
+            self.choices.insert(1, "Disable alarm")
+        else:
+            self.choices.insert(1, "Enable alarm")
+
+    def run(self):
+        super().run()
+        self.display.display_menu_content(self.choices, self.cursor)
+
+    def next(self) -> State:
+        return None  # From here, the user can only go back
+
+    def up_down(self, input):
+        super().up_down(input)
+        if self.removed:
+            return
+        if self.waiting_for_data:
+            return None
+        self.display.display_menu_content(self.choices, self.cursor)
+
+    def select(self):
+        if self.removed:
+            return
+        if self.cursor == 1:
+            self.alarm_data["enabled"] = not self.alarm_data["enabled"]
+            self.socket.emit('setAlarm', {
+                'id': self.alarm_data["id"],
+                'enabled': self.alarm_data["enabled"],
+                'time': self.alarm_data["time_parsed"],
+                'playlist': self.alarm_data["playlist"]
+            })
+            # Update the alarm state on display
+            self.choices.pop(1)
+            self.update_choices(self.alarm_data["enabled"])
+            self.display.display_menu_content(self.choices, self.cursor)
+        elif self.cursor == 2:
+            self.removed = True
+            self.socket.emit('removeAlarm', self.alarm_data["id"])
+            self.display.display_menu(self.messages["DISPLAY"]['ALARM_REMOVED'], 0, 0, 'info')
+
+
+class AlarmAddSubMenu(StateImp):
     def __init__(self, messages, socket, display):
         super().__init__(messages, socket, display)
-        self.waiting_for_data = True
-        self.socket.on('pushAlarm', self.update_data)
-        self.choices = ["Add alarm [+]"]
+        self.choices = ["Remove alarm [-]"]
 
     def update_data(self, data):
-        # Parse the time data from YYYY-MM-DDTHH:MM:SSZ to HH:MM
-        for alarm in data:
-            # Parse the string into a datetime object
-            time_obj = datetime.fromisoformat(alarm['time'][:-1])
-
-            # Extract the hour and minute from the datetime object
-            hour = time_obj.hour
-            minute = time_obj.minute
-            self.choices.insert(0, f'{hour}:{minute}')
+        self.choices.insert(0, f'[{data["time_parsed"]}]: {data["playlist"]}')
+        if data["enabled"]:
+            self.choices.insert(1, "Disable alarm")
+        else:
+            self.choices.insert(1, "Enable alarm")
         self.display.display_menu_content(self.choices, self.cursor)
-
-        self.waiting_for_data = False
 
     def run(self):
         super().run()
@@ -418,9 +472,7 @@ class AlarmSubMenu(StateImp):
         self.display.display_menu_content(self.choices, self.cursor)
 
     def next(self) -> State:
-        if self.waiting_for_data:
-            return None
-        return MenuClosed(AlarmMenu, MESSAGES_DATA, self.socket, self.display)
+        return None  # From here, the user can only go back
 
     def up_down(self, input):
         super().up_down(input)
@@ -429,7 +481,15 @@ class AlarmSubMenu(StateImp):
         self.display.display_menu_content(self.choices, self.cursor)
 
     def select(self):
-        pass
+        if self.cursor == 1:
+            self.alarm_data["enabled"] = not self.alarm_data["enabled"]
+            self.socket.emit('setAlarm', {
+                'id': self.alarm_data["id"],
+                'enabled': self.alarm_data["enabled"],
+                'time': self.alarm_data["time"],
+                'playlist': self.alarm_data["uriplaylist"]
+            })
+            self.display.display_menu_content(self.choices, self.cursor)
 
 
 class RebootMenu(StateImp):
